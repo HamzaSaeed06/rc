@@ -4,6 +4,7 @@ import {
   Video, VideoOff, Crown, Monitor,
 } from 'lucide-react';
 import useAudioAnalyser from '@/hooks/useAudioAnalyser';
+import AudioVisCanvas from '@/components/features/room/AudioVisCanvas';
 import { getParticipantColor } from '@/utils/participantColors';
 
 // ─── Hand raise badge — bounces then settles ────────────────────────────────
@@ -44,7 +45,7 @@ export default function VideoTile({
 }) {
   const [isLocallyMuted, setIsLocallyMuted] = useState(false);
   const videoRef = useRef(null);
-  const { isSpeaking } = useAudioAnalyser(muted ? null : stream);
+  const { isSpeaking, bars } = useAudioAnalyser(muted ? null : stream);
 
   const color = getParticipantColor(user?._id || user?.id || user?.name || 'default');
 
@@ -232,19 +233,20 @@ export default function VideoTile({
         </div>
       </div>
 
-      {/* Bottom info pill */}
-      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-md max-w-[calc(100%-24px)]">
-        {showMicOff ? (
+      {/* 🎵 Audio visualizer circle — bottom-left, always visible when audio active */}
+      {!showMicOff && (
+        <div className="absolute bottom-3 left-3 z-10 w-9 h-9 rounded-full bg-[#1e2030] flex items-center justify-center shadow-lg shrink-0 overflow-hidden">
+          <AudioVisCanvas bars={bars} size={36} />
+        </div>
+      )}
+
+      {/* Bottom info pill — name + mic-off icon */}
+      <div className={`absolute bottom-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-md max-w-[calc(100%-80px)] ${showMicOff ? 'left-3' : 'left-14'}`}>
+        {showMicOff && (
           <div className="bg-[#ea4335] rounded-full p-0.5 shadow shrink-0">
             <MicOff className="w-3.5 h-3.5 text-white" />
           </div>
-        ) : isSpeakingActive ? (
-          <div className="flex items-end gap-[2px] h-[16px] shrink-0 px-0.5">
-            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-1" />
-            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-2" />
-            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-3" />
-          </div>
-        ) : null}
+        )}
         <span className="text-xs sm:text-sm font-medium text-white truncate shadow-sm tracking-wide">
           {isLocal ? `You${isHost ? ' (Host)' : ''}` : user?.name || 'Participant'}
         </span>

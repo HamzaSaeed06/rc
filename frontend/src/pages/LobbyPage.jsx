@@ -53,32 +53,29 @@ export default function LobbyPage() {
     if (camPerm === 'granted') startCamera();
   }, [camPerm]); // eslint-disable-line
 
-  // ── Audio visualizer: 3 HORIZONTAL pill bars growing from center left+right ──
-  // Layout: 3 rows stacked, each bar is a horizontal capsule.
-  // On audio → bar expands LEFT and RIGHT from center X simultaneously.
-  // Buffer = 72px (36px CSS × 2) — always sharp, no DPR logic needed.
-  const BUF     = 72;   // buffer size in real px  (36px CSS)
-  const BH      = 8;    // bar HEIGHT in buffer px  (4px CSS)
-  const BG      = 6;    // gap between rows in buffer px
-  const BR      = BH / 2;                       // = 4, capsule radius
-  const CX      = BUF / 2;                      // = 36, center X
-  // 3 rows: total height = 3*8 + 2*6 = 36  →  startY = (72-36)/2 = 18
-  const ROW_CY  = [22, 36, 50];                 // center Y of each row
-  const MAX_HW  = CX - 5;                       // = 31, max half-width (5px padding)
-  const MIN_HW  = BR;                           // = 4,  min = just a pill dot
-  const FIDX    = [1, 6, 14];                   // FFT bins: low / mid / high
+  // ── Audio visualizer: 3 VERTICAL pill bars, each grows UP+DOWN from center ──
+  // Buffer = 72px real (36px CSS × 2) — always sharp.
+  // 3 bars side-by-side; each bar's height is symmetric around centerY.
+  const VIS_BUF   = 72;
+  const VIS_BW    = 8;    // bar width in buffer px
+  const VIS_BG    = 6;    // gap between bars
+  const VIS_R     = VIS_BW / 2;                          // = 4 (pill radius)
+  const VIS_CY    = VIS_BUF / 2;                         // = 36
+  // totalW = 3*8 + 2*6 = 36 → startX = (72-36)/2 = 18
+  const VIS_BAR_CX = [22, 36, 50];                       // center X of each bar
+  const VIS_MAXH   = VIS_CY - 5;                         // = 31, max half-height
+  const VIS_MINH   = VIS_R + 1;                          // = 5,  min (tiny dot)
+  const VIS_FIDX   = [1, 6, 14];                         // FFT bins: low/mid/high
 
-  // Draw a horizontal capsule centered at (cx, cy) with half-width hw
-  const fillHPill = (ctx, cx, cy, hw) => {
-    const r  = BR;
-    const x1 = cx - hw;
-    const x2 = cx + hw;
+  // Vertical capsule centered at (cx, cy) with half-height `half`
+  const fillVPill = (ctx, cx, cy, half) => {
+    const r = VIS_R;
+    const ytop = cy - half;
+    const ybot = cy + half;
     ctx.beginPath();
-    ctx.moveTo(x1 + r, cy - r);
-    ctx.lineTo(x2 - r, cy - r);
-    ctx.arc(x2 - r, cy, r, -Math.PI / 2,  Math.PI / 2, false); // right cap
-    ctx.lineTo(x1 + r, cy + r);
-    ctx.arc(x1 + r, cy, r,  Math.PI / 2, -Math.PI / 2, false); // left cap
+    ctx.arc(cx, ytop + r, r, Math.PI, 0,        false); // top cap
+    ctx.lineTo(cx + r, ybot - r);
+    ctx.arc(cx, ybot - r, r, 0,        Math.PI, false); // bottom cap
     ctx.closePath();
     ctx.fill();
   };
@@ -87,15 +84,14 @@ export default function LobbyPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     analyser.getByteFrequencyData(dataArray);
-
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, BUF, BUF);
+    ctx.clearRect(0, 0, VIS_BUF, VIS_BUF);
 
     for (let i = 0; i < 3; i++) {
-      const val = dataArray[FIDX[i]] / 255;
-      const hw  = Math.max(MIN_HW, Math.round(val * MAX_HW));
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-      fillHPill(ctx, CX, ROW_CY[i], hw);
+      const val  = dataArray[VIS_FIDX[i]] / 255;
+      const half = Math.max(VIS_MINH, Math.round(val * VIS_MAXH));
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      fillVPill(ctx, VIS_BAR_CX[i], VIS_CY, half);
     }
 
     animRef.current = requestAnimationFrame(() => drawVisualizer(analyser, dataArray));
@@ -105,11 +101,10 @@ export default function LobbyPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, BUF, BUF);
-
+    ctx.clearRect(0, 0, VIS_BUF, VIS_BUF);
     for (let i = 0; i < 3; i++) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-      fillHPill(ctx, CX, ROW_CY[i], MIN_HW);
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      fillVPill(ctx, VIS_BAR_CX[i], VIS_CY, VIS_MINH);
     }
   }, []); // eslint-disable-line
 
