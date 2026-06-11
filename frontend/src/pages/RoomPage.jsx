@@ -616,7 +616,6 @@ function MicGroup({ audioEnabled, onToggle, isSpeaking, bars = [0,0,0], devices,
         {/* Left — real-time frequency bars (click = device picker) */}
         <button onClick={() => setOpen(v => !v)} title="Select microphone"
           className={`flex items-center justify-center w-11 h-full transition-colors
-            border-r ${!audioEnabled ? 'border-white/20' : 'border-white/10'}
             ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
           <div className="flex items-end justify-center gap-[3px] h-5">
             {bars.map((b, i) => (
@@ -656,7 +655,6 @@ function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }
         {/* Left — ChevronUp arrow (click = device picker) */}
         <button onClick={() => setOpen(v => !v)} title="Select camera"
           className={`flex items-center justify-center w-11 h-full transition-colors
-            border-r ${!videoEnabled ? 'border-white/20' : 'border-white/10'}
             ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
           <ChevronUp className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180 text-white' : 'text-white/70'}`} />
         </button>
@@ -1091,10 +1089,8 @@ export default function RoomPage() {
           </div>
         </div>
 
-        {/* Center — meeting name only (icons moved to footer More menu) */}
-        <div className="flex items-center justify-center flex-1">
-          <span className="text-sm font-semibold text-[#e8eaed] truncate max-w-[260px]">{room?.name || 'Meeting'}</span>
-        </div>
+        {/* Center — spacer */}
+        <div className="flex-1" />
 
         {/* Right — timer + participant count pill */}
         <div className="flex items-center gap-2.5 w-[220px] flex-shrink-0 justify-end">

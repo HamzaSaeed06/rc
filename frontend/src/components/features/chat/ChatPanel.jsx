@@ -627,13 +627,13 @@ export default function ChatPanel({ roomId }) {
                 {!isPending && (
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
-                    className="flex items-center gap-1 mt-0.5 mr-0.5 px-2 py-0.5 rounded-full text-[10px]
+                    className="flex items-center justify-center mt-0.5 mr-0.5 w-6 h-6 rounded-full
                       opacity-0 group-hover:opacity-100 transition-opacity duration-150
                       text-[#9aa0a6] hover:text-white hover:bg-white/10"
-                    title="Copy">
+                    title={copiedMsgId === msg._id ? 'Copied!' : 'Copy'}>
                     {copiedMsgId === msg._id
-                      ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
-                      : <><Copy className="w-3 h-3" /><span>Copy</span></>}
+                      ? <Check className="w-3.5 h-3.5 text-green-400" />
+                      : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 )}
 
@@ -722,13 +722,13 @@ export default function ChatPanel({ roomId }) {
                 {!isPending && (
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
-                    className="flex items-center gap-1 mt-0.5 ml-0.5 px-2 py-0.5 rounded-full text-[10px]
+                    className="flex items-center justify-center mt-0.5 ml-0.5 w-6 h-6 rounded-full
                       opacity-0 group-hover:opacity-100 transition-opacity duration-150
                       text-[#9aa0a6] hover:text-white hover:bg-white/10"
-                    title="Copy">
+                    title={copiedMsgId === msg._id ? 'Copied!' : 'Copy'}>
                     {copiedMsgId === msg._id
-                      ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
-                      : <><Copy className="w-3 h-3" /><span>Copy</span></>}
+                      ? <Check className="w-3.5 h-3.5 text-green-400" />
+                      : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 )}
 
