@@ -140,7 +140,25 @@ function useNotificationSounds() {
     } catch { }
   }, []);
 
-  return { playJoinSound, playHandRaiseSound };
+  const playLeaveSound = useCallback(() => {
+    try {
+      const ctx = getCtx();
+      const t = ctx.currentTime;
+      playTone(660, 0.15, 0.14, 'sine', t, ctx);
+      playTone(440, 0.20, 0.12, 'sine', t + 0.13, ctx);
+    } catch { }
+  }, []);
+
+  const playFileSound = useCallback(() => {
+    try {
+      const ctx = getCtx();
+      const t = ctx.currentTime;
+      playTone(1200, 0.06, 0.12, 'sine', t, ctx);
+      playTone(1500, 0.10, 0.10, 'sine', t + 0.05, ctx);
+    } catch { }
+  }, []);
+
+  return { playJoinSound, playHandRaiseSound, playLeaveSound, playFileSound };
 }
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
@@ -328,7 +346,7 @@ function fileIcon(name) {
   return <File className="w-5 h-5 text-indigo-400" />;
 }
 
-function FilesPanel({ roomId }) {
+function FilesPanel({ roomId, onFileUploaded }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -371,6 +389,7 @@ function FilesPanel({ roomId }) {
         });
         const socket = getSocket();
         socket?.emit('file:uploaded', { roomId, file: uploaded });
+        onFileUploaded?.();
       }
     } catch (err) {
       setUploadError(err.response?.data?.message || 'Upload failed. Try again.');
@@ -541,8 +560,8 @@ function CtrlBtn({ onClick, active, danger, title, children, badge, label }) {
     <div className="flex flex-col items-center gap-1">
       <button onClick={onClick} title={title}
         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 relative
-          ${danger ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 ring-1 ring-red-500/30'
-            : active ? 'bg-indigo-600/25 text-indigo-300 hover:bg-indigo-600/35 ring-1 ring-indigo-500/40'
+          ${danger ? 'bg-red-600/25 text-red-400 hover:bg-red-600/35 shadow-[0_0_10px_rgba(239,68,68,0.25)]'
+            : active ? 'bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600/40 shadow-[0_0_10px_rgba(99,102,241,0.3)]'
               : 'bg-white/8 text-gray-200 hover:bg-white/14 hover:text-white'}`}
       >
         {children}
@@ -695,11 +714,15 @@ export default function RoomPage() {
   const [unreadChat, setUnreadChat] = useState(0);
 
   const { toasts, addToast } = useToasts();
-  const { playJoinSound, playHandRaiseSound } = useNotificationSounds();
+  const { playJoinSound, playHandRaiseSound, playLeaveSound, playFileSound } = useNotificationSounds();
   const soundJoinRef = useRef(playJoinSound);
   const soundHandRef = useRef(playHandRaiseSound);
+  const soundLeaveRef = useRef(playLeaveSound);
+  const soundFileRef = useRef(playFileSound);
   useEffect(() => { soundJoinRef.current = playJoinSound; }, [playJoinSound]);
   useEffect(() => { soundHandRef.current = playHandRaiseSound; }, [playHandRaiseSound]);
+  useEffect(() => { soundLeaveRef.current = playLeaveSound; }, [playLeaveSound]);
+  useEffect(() => { soundFileRef.current = playFileSound; }, [playFileSound]);
   const audioRef = useRef(audioEnabled);
   const moreRef = useRef(null);
 
@@ -723,13 +746,14 @@ export default function RoomPage() {
     return () => clearInterval(id);
   }, [room]);
 
-  // Close more/layout on outside click
+  // Close more menu on outside click — use 'click' (not mousedown) so item
+  // onClick fires BEFORE the outside-click handler removes the menu from DOM.
   useEffect(() => {
     const h = (e) => {
       if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false);
     };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
+    document.addEventListener('click', h);
+    return () => document.removeEventListener('click', h);
   }, []);
 
   // Track unread chat messages
@@ -802,6 +826,7 @@ export default function RoomPage() {
     });
     socket.on('room:user-joined', ({ name }) => { soundJoinRef.current?.(); addToast(`${name} joined`, 'join'); });
     socket.on('room:user-left', ({ socketId, name }) => {
+      soundLeaveRef.current?.();
       addToast(`${name || 'Participant'} left`, 'leave');
       removePeer(socketId);
       setScreenSharingPeers(p => { const n = new Set(p); n.delete(socketId); return n; });
@@ -1018,7 +1043,7 @@ export default function RoomPage() {
                     videoEnabled={videoEnabled} onMute={handleMute}
                     onMakeHost={(uid) => getSocket()?.emit('room:change-host', { roomId, newHostUserId: uid })} />
                 )}
-                {activePanel === PANELS.files && <FilesPanel roomId={roomId} />}
+                {activePanel === PANELS.files && <FilesPanel roomId={roomId} onFileUploaded={() => soundFileRef.current?.()} />}
               </div>
             </aside>
           </>
