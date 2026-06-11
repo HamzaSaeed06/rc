@@ -464,12 +464,13 @@ function FilesPanel({ roomId, onFileUploaded }) {
 }
 
 // ─── More dropdown (centered above footer, no border) ─────────────────────────
-function MoreMenu({ onRecord, isRecording, onWhiteboard, onFiles, isScreenSharing, onStopShare, isHandRaised, onHandRaise, onClose }) {
+function MoreMenu({ onRecord, isRecording, onWhiteboard, onFiles, onParticipants, isScreenSharing, onStopShare, isHandRaised, onHandRaise, onClose }) {
   const items = [
-    { icon: <Circle className={`w-4 h-4 ${isRecording ? 'text-[#ea4335] animate-pulse' : 'text-[#e8eaed]'}`} />, label: isRecording ? 'Stop Recording' : 'Record Meeting', action: onRecord },
-    { icon: <LayoutGrid className="w-4 h-4 text-[#e8eaed]" />, label: 'Open Whiteboard', action: onWhiteboard },
+    { icon: <Users className="w-4 h-4 text-[#e8eaed]" />, label: 'People', action: onParticipants },
     { icon: <FileText className="w-4 h-4 text-[#e8eaed]" />, label: 'Share Files', action: onFiles },
+    { icon: <LayoutGrid className="w-4 h-4 text-[#e8eaed]" />, label: 'Open Whiteboard', action: onWhiteboard },
     { icon: <Hand className="w-4 h-4 text-[#e8eaed]" />, label: isHandRaised ? 'Lower Hand' : 'Raise Hand', action: onHandRaise },
+    { icon: <Circle className={`w-4 h-4 ${isRecording ? 'text-[#ea4335] animate-pulse' : 'text-[#e8eaed]'}`} />, label: isRecording ? 'Stop Recording' : 'Record Meeting', action: onRecord },
     ...(isScreenSharing ? [{ icon: <MonitorOff className="w-4 h-4 text-orange-400" />, label: 'Stop Sharing Screen', action: onStopShare }] : []),
   ];
 
@@ -1093,30 +1094,9 @@ export default function RoomPage() {
           </div>
         </div>
 
-        {/* Center — icon action buttons (People, Whiteboard, Files, Settings, More) */}
-        <div className="flex items-center gap-1 flex-1 justify-center">
-          <button onClick={() => togglePanel(PANELS.participants)} title="People (P)"
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-              ${activePanel === PANELS.participants ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
-            <Users className="w-5 h-5" />
-          </button>
-          <button onClick={() => togglePanel(PANELS.whiteboard)} title="Whiteboard"
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-              ${activePanel === PANELS.whiteboard ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
-            <LayoutGrid className="w-5 h-5" />
-          </button>
-          <button onClick={() => togglePanel(PANELS.files)} title="Shared files"
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-              ${activePanel === PANELS.files ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
-            <FileText className="w-5 h-5" />
-          </button>
-          <div ref={moreRef}>
-            <button onClick={() => setShowMore(v => !v)} title="More options"
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-                ${showMore ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-          </div>
+        {/* Center — meeting name only (icons moved to footer More menu) */}
+        <div className="flex items-center justify-center flex-1">
+          <span className="text-sm font-semibold text-[#e8eaed] truncate max-w-[260px]">{room?.name || 'Meeting'}</span>
         </div>
 
         {/* Right — timer + participant count pill */}
@@ -1270,6 +1250,7 @@ export default function RoomPage() {
         <MoreMenu
           onRecord={handleRecord}
           isRecording={isRecording}
+          onParticipants={() => togglePanel(PANELS.participants)}
           onWhiteboard={() => togglePanel(PANELS.whiteboard)}
           onFiles={() => togglePanel(PANELS.files)}
           isScreenSharing={isScreenSharing}
