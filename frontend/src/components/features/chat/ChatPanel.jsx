@@ -579,11 +579,10 @@ export default function ChatPanel({ roomId }) {
             /* ── MY MESSAGE (right) ── */
             <div key={key}
               className="group relative flex justify-end px-3 pt-1.5 pb-1"
-              onMouseLeave={() => setMoreEmojiMsgId(null)}
+              onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              onClick={(e) => { e.stopPropagation(); if (!isPending) setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
             >
               <div className="flex flex-col items-end max-w-[78%]">
                 {/* Time */}
@@ -600,38 +599,50 @@ export default function ChatPanel({ roomId }) {
                   </div>
                 )}
 
-                {/* Bubble */}
-                <div className={`relative group/bubble inline-block px-3 py-2 rounded-2xl rounded-tr-sm
-                  bg-[#1a73e8] text-white ${isPending ? 'opacity-60' : ''}`}>
-                  {msg.type === 'file' ? (
-                    <>
-                      {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
-                      <FileCard file={msg.file} baseUrl={baseUrl} />
-                    </>
-                  ) : (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
-                  )}
-                  {/* Copy button — inside bubble, top-right, fades in on hover */}
+                {/* Bubble + ▼ arrow row */}
+                <div className="flex items-center gap-1.5">
+                  {/* ▼ arrow — appears on hover, opens emoji bar on click */}
                   {!isPending && (
                     <button type="button"
-                      onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
-                      className="absolute -top-2 -right-2 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200
-                        flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] bg-[#1f2023] border border-white/10
-                        text-[#9aa0a6] hover:text-white shadow-lg z-10"
-                      title="Copy">
-                      {copiedMsgId === msg._id
-                        ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied</span></>
-                        : <Copy className="w-3 h-3" />}
+                      onClick={(e) => { e.stopPropagation(); setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-6 h-6 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-[#9aa0a6] hover:text-white"
+                      title="React">
+                      <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   )}
+                  <div className={`relative inline-block px-3 py-2 rounded-2xl rounded-tr-sm
+                    bg-[#1a73e8] text-white ${isPending ? 'opacity-60' : ''}`}>
+                    {msg.type === 'file' ? (
+                      <>
+                        {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
+                        <FileCard file={msg.file} baseUrl={baseUrl} />
+                      </>
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
+                    )}
+                  </div>
                 </div>
+
+                {/* Copy button — below bubble, fades in on hover */}
+                {!isPending && (
+                  <button type="button"
+                    onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
+                    className="flex items-center gap-1 mt-0.5 mr-0.5 px-2 py-0.5 rounded-full text-[10px]
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                      text-[#9aa0a6] hover:text-white hover:bg-white/10"
+                    title="Copy">
+                    {copiedMsgId === msg._id
+                      ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+                      : <><Copy className="w-3 h-3" /><span>Copy</span></>}
+                  </button>
+                )}
 
                 {/* Reaction pills */}
                 <ReactionPills reactions={msg.reactions} userId={user?._id}
                   onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
-              {/* Emoji bar — click only */}
+              {/* Emoji bar */}
               {!isPending && (
                 <MessageActions msg={msg} userId={user?._id}
                   onReact={handleToggleReaction}
@@ -647,11 +658,10 @@ export default function ChatPanel({ roomId }) {
             /* ── OTHERS' MESSAGE (left) ── */
             <div key={key}
               className="group relative flex items-start gap-2.5 px-3 pt-2 pb-1"
-              onMouseLeave={() => setMoreEmojiMsgId(null)}
+              onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              onClick={(e) => { e.stopPropagation(); if (!isPending) setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
             >
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 select-none"
@@ -678,38 +688,50 @@ export default function ChatPanel({ roomId }) {
                   </div>
                 )}
 
-                {/* Bubble */}
-                <div className={`relative group/bubble inline-block px-3 py-2 rounded-2xl rounded-tl-sm
-                  bg-[#3a3d42] text-[#e8eaed] ${isPending ? 'opacity-60' : ''}`}>
-                  {msg.type === 'file' ? (
-                    <>
-                      {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
-                      <FileCard file={msg.file} baseUrl={baseUrl} />
-                    </>
-                  ) : (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
-                  )}
-                  {/* Copy button — inside bubble, top-right, fades in on hover */}
+                {/* Bubble + ▼ arrow row */}
+                <div className="flex items-center gap-1.5">
+                  <div className={`relative inline-block px-3 py-2 rounded-2xl rounded-tl-sm
+                    bg-[#3a3d42] text-[#e8eaed] ${isPending ? 'opacity-60' : ''}`}>
+                    {msg.type === 'file' ? (
+                      <>
+                        {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
+                        <FileCard file={msg.file} baseUrl={baseUrl} />
+                      </>
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
+                    )}
+                  </div>
+                  {/* ▼ arrow — appears on hover, opens emoji bar on click */}
                   {!isPending && (
                     <button type="button"
-                      onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
-                      className="absolute -top-2 -right-2 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200
-                        flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] bg-[#1f2023] border border-white/10
-                        text-[#9aa0a6] hover:text-white shadow-lg z-10"
-                      title="Copy">
-                      {copiedMsgId === msg._id
-                        ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied</span></>
-                        : <Copy className="w-3 h-3" />}
+                      onClick={(e) => { e.stopPropagation(); setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-6 h-6 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-[#9aa0a6] hover:text-white flex-shrink-0"
+                      title="React">
+                      <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
+
+                {/* Copy button — below bubble, fades in on hover */}
+                {!isPending && (
+                  <button type="button"
+                    onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
+                    className="flex items-center gap-1 mt-0.5 ml-0.5 px-2 py-0.5 rounded-full text-[10px]
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                      text-[#9aa0a6] hover:text-white hover:bg-white/10"
+                    title="Copy">
+                    {copiedMsgId === msg._id
+                      ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+                      : <><Copy className="w-3 h-3" /><span>Copy</span></>}
+                  </button>
+                )}
 
                 {/* Reaction pills */}
                 <ReactionPills reactions={msg.reactions} userId={user?._id}
                   onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
-              {/* Emoji bar — click only */}
+              {/* Emoji bar */}
               {!isPending && (
                 <MessageActions msg={msg} userId={user?._id}
                   onReact={handleToggleReaction}

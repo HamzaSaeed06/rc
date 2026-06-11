@@ -598,6 +598,7 @@ function DevicePicker({ label, devices, currentId, onSelect, onClose }) {
 // ─── Mic split-pill: [^+bars | MIC] ──────────────────────────────────────────
 function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSelectDevice }) {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -606,33 +607,25 @@ function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSe
     return () => document.removeEventListener('mousedown', h);
   }, [open]);
   return (
-    <div ref={ref} className="relative">
-      <div className={`flex items-center h-14 rounded-full overflow-hidden transition-colors ${!audioEnabled ? 'bg-[#ea4335]' : 'bg-[#3c4043]'}`}>
-        {/* Left half: three dots / speaking bars */}
-        <button onClick={() => setOpen(v => !v)} title="Audio devices"
-          className={`flex items-center justify-center w-10 h-full transition-colors
-            border-r ${!audioEnabled ? 'border-white/20' : 'border-white/10'}
-            ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
-          {isSpeaking && audioEnabled ? (
-            <div className="flex items-end justify-center gap-[2.5px] h-4">
-              <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-1" style={{ minHeight: '2px' }} />
-              <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-2" style={{ minHeight: '2px' }} />
-              <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-3" style={{ minHeight: '2px' }} />
-            </div>
-          ) : (
-            <div className="flex items-center gap-[3.5px]">
-              <span className="w-[4px] h-[4px] rounded-full bg-white/60" />
-              <span className="w-[4px] h-[4px] rounded-full bg-white/60" />
-              <span className="w-[4px] h-[4px] rounded-full bg-white/60" />
-            </div>
-          )}
-        </button>
-        {/* Right half: mic icon */}
-        <button onClick={onToggle} title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}
-          className="flex items-center justify-center w-14 h-full hover:bg-white/10 transition-colors text-white">
-          {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
-        </button>
-      </div>
+    <div ref={ref} className="relative inline-block"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+      {/* Single circular toggle button */}
+      <button onClick={onToggle}
+        title={audioEnabled ? 'Mute microphone (M)' : 'Unmute microphone (M)'}
+        className={`relative w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-200 select-none
+          ${!audioEnabled ? 'bg-[#ea4335] hover:bg-[#d33828]' : 'bg-[#3c4043] hover:bg-[#4a4d50]'}
+          ${isSpeaking && audioEnabled ? 'ring-2 ring-[#8ab4f8] ring-offset-2 ring-offset-[#202124]' : ''}`}>
+        {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+      </button>
+      {/* Hover chevron badge — click to open device picker */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+        title="Select microphone"
+        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#2a2d30] border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all duration-150 shadow-lg z-10
+          ${hovered || open ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`}>
+        <ChevronUp className="w-3.5 h-3.5 text-white" />
+      </button>
       {open && <DevicePicker label="Microphone" devices={devices} currentId={currentId} onSelect={onSelectDevice} onClose={() => setOpen(false)} />}
     </div>
   );
@@ -641,6 +634,7 @@ function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSe
 // ─── Camera split-pill: [^ | CAM] ────────────────────────────────────────────
 function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }) {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -649,26 +643,24 @@ function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }
     return () => document.removeEventListener('mousedown', h);
   }, [open]);
   return (
-    <div ref={ref} className="relative">
-      <div className={`flex items-center h-14 rounded-full overflow-hidden transition-colors ${!videoEnabled ? 'bg-[#ea4335]' : 'bg-[#3c4043]'}`}>
-        {/* Left half: ChevronUp */}
-        <button onClick={() => setOpen(v => !v)} title="Camera devices"
-          className={`flex items-center justify-center w-10 h-full transition-colors
-            border-r ${!videoEnabled ? 'border-white/20' : 'border-white/10'}
-            ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
-          <ChevronUp className={`w-4 h-4 ${open ? 'text-white' : 'text-white/60'}`} />
-        </button>
-        {/* Right half: camera icon with warning badge when off */}
-        <button onClick={onToggle} title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}
-          className="relative flex items-center justify-center w-14 h-full hover:bg-white/10 transition-colors text-white">
-          {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
-          {!videoEnabled && (
-            <span className="absolute top-2.5 right-2 w-4 h-4 rounded-full bg-[#fbbc04] flex items-center justify-center shadow-md">
-              <span className="text-[#202124] text-[9px] font-black leading-none select-none">!</span>
-            </span>
-          )}
-        </button>
-      </div>
+    <div ref={ref} className="relative inline-block"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+      {/* Single circular toggle button */}
+      <button onClick={onToggle}
+        title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}
+        className={`relative w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-200 select-none
+          ${!videoEnabled ? 'bg-[#ea4335] hover:bg-[#d33828]' : 'bg-[#3c4043] hover:bg-[#4a4d50]'}`}>
+        {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+      </button>
+      {/* Hover chevron badge — click to open device picker */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+        title="Select camera"
+        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#2a2d30] border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all duration-150 shadow-lg z-10
+          ${hovered || open ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`}>
+        <ChevronUp className="w-3.5 h-3.5 text-white" />
+      </button>
       {open && <DevicePicker label="Camera" devices={devices} currentId={currentId} onSelect={onSelectDevice} onClose={() => setOpen(false)} />}
     </div>
   );
