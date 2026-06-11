@@ -13,82 +13,176 @@ export default function LobbyPage() {
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animRef = useRef(null);
 
-  const [selectedAudio] = useState(() => localStorage.getItem('syncspace_mic_id') || '');
-  const [selectedVideo] = useState(() => localStorage.getItem('syncspace_cam_id') || '');
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(false);
-  const [permError, setPermError] = useState('');
   const [roomName, setRoomName] = useState('');
   const [joining, setJoining] = useState(false);
-  const [camPermAsked, setCamPermAsked] = useState(false);
+
+  // 'unknown' | 'prompt' | 'granted' | 'denied'
+  const [camPerm, setCamPerm] = useState('unknown');
+  const [camError, setCamError] = useState('');
+
+  // Audio level (0–255 average)
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const avatarColor = getParticipantColor(user?._id || user?.name || '');
   const avatarInitial = (user?.name || '?').charAt(0).toUpperCase();
 
+  // ── Fetch room name ──────────────────────────────────────────────────────────
   useEffect(() => {
     api.get(`/rooms/${roomId}`)
       .then(r => setRoomName(r.data?.data?.room?.name || 'Meeting'))
       .catch(() => {});
   }, [roomId]);
 
-  const startStream = useCallback(async (withVideo) => {
-    setPermError('');
-    streamRef.current?.getTracks().forEach(t => t.stop());
+  // ── Check camera permission on mount ────────────────────────────────────────
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const result = await navigator.permissions.query({ name: 'camera' });
+        setCamPerm(result.state); // 'granted' | 'prompt' | 'denied'
+        result.onchange = () => setCamPerm(result.state);
+      } catch {
+        setCamPerm('prompt'); // fallback if permissions API not supported
+      }
+    };
+    check();
+  }, []);
+
+  // ── Auto-start camera if already granted ─────────────────────────────────────
+  useEffect(() => {
+    if (camPerm === 'granted') {
+      startCamera();
+    }
+  }, [camPerm]); // eslint-disable-line
+
+  // ── Audio analyser — runs whenever mic is on ─────────────────────────────────
+  const startAudioAnalyser = useCallback((stream) => {
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close(); } catch {}
+    }
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: withVideo ? (selectedVideo ? { deviceId: { exact: selectedVideo } } : true) : false,
-        audio: micOn ? (selectedAudio ? { deviceId: { exact: selectedAudio } } : true) : true,
-      });
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setAudioLevel(avg);
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch {}
+  }, []);
+
+  const stopAudioAnalyser = useCallback(() => {
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+    setAudioLevel(0);
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close(); } catch {}
+      audioCtxRef.current = null;
+    }
+  }, []);
+
+  // ── Start camera stream ──────────────────────────────────────────────────────
+  const startCamera = useCallback(async () => {
+    setCamError('');
+    try {
+      const existing = streamRef.current;
+      const audioTrack = existing?.getAudioTracks()[0];
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
+      setCamOn(true);
+      setCamPerm('granted');
+
+      // Start audio visualiser
+      if (micOn) startAudioAnalyser(stream);
     } catch (err) {
       setCamOn(false);
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
-        setPermError('Camera access denied.');
-      else if (err.name === 'NotFoundError')
-        setPermError('No camera found.');
-      else
-        setPermError('Could not access camera.');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCamPerm('denied');
+        setCamError('Camera access blocked. Enable it from your browser settings (🔒 icon in address bar).');
+      } else if (err.name === 'NotFoundError') {
+        setCamError('No camera found on this device.');
+      } else {
+        setCamError('Could not access camera.');
+      }
     }
-  }, [micOn, selectedAudio, selectedVideo]);
+  }, [micOn, startAudioAnalyser]);
+
+  // ── Start mic-only stream (no camera) ───────────────────────────────────────
+  const startMicOnly = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+      streamRef.current = stream;
+      if (micOn) startAudioAnalyser(stream);
+    } catch {}
+  }, [micOn, startAudioAnalyser]);
 
   useEffect(() => {
-    startStream(false);
-    return () => streamRef.current?.getTracks().forEach(t => t.stop());
+    startMicOnly();
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      stopAudioAnalyser();
+    };
   }, []); // eslint-disable-line
 
-  const handleAllowCamera = async () => {
-    setCamPermAsked(true);
-    setCamOn(true);
-    await startStream(true);
-  };
-
-  const handleToggleCam = async () => {
-    const next = !camOn;
-    setCamOn(next);
-    await startStream(next);
-  };
-
+  // ── Toggle mic ───────────────────────────────────────────────────────────────
   const handleToggleMic = () => {
-    setMicOn(v => !v);
+    const next = !micOn;
+    setMicOn(next);
     if (streamRef.current) {
-      streamRef.current.getAudioTracks().forEach(t => { t.enabled = !micOn; });
+      streamRef.current.getAudioTracks().forEach(t => { t.enabled = next; });
+    }
+    if (next && streamRef.current) {
+      startAudioAnalyser(streamRef.current);
+    } else {
+      stopAudioAnalyser();
+    }
+  };
+
+  // ── Toggle camera ────────────────────────────────────────────────────────────
+  const handleToggleCam = async () => {
+    if (camOn) {
+      streamRef.current?.getVideoTracks().forEach(t => t.stop());
+      setCamOn(false);
+      if (videoRef.current) videoRef.current.srcObject = null;
+    } else {
+      await startCamera();
     }
   };
 
   const handleJoin = () => {
     setJoining(true);
     streamRef.current?.getTracks().forEach(t => t.stop());
+    stopAudioAnalyser();
     initSocket();
     navigate(`/room/${roomId}`);
   };
+
+  // ── Audio level bars (5 bars) ─────────────────────────────────────────────
+  const NUM_BARS = 5;
+  const volBars = micOn ? Math.min(NUM_BARS, Math.round((audioLevel / 255) * NUM_BARS * 2)) : 0;
+  const barHeights = [6, 10, 14, 10, 6]; // shape: short-tall-short
 
   return (
     <div className="h-screen bg-[#1c1c1c] text-white font-sans flex flex-col overflow-hidden select-none">
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-4 z-10">
+      <div className="flex items-center justify-between px-5 py-4 z-10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
@@ -106,60 +200,74 @@ export default function LobbyPage() {
         </button>
       </div>
 
-      {/* Center content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 relative">
+      {/* Center — preview area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
 
-        {/* Camera preview OR dark placeholder */}
-        {camOn && !permError ? (
-          <div className="relative w-full max-w-2xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
+        {/* Video box */}
+        <div className="relative w-full max-w-2xl aspect-video rounded-2xl overflow-hidden bg-[#111] shadow-2xl">
+
+          {/* Live camera feed */}
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className={`w-full h-full object-cover scale-x-[-1] transition-opacity duration-300 ${camOn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          />
+
+          {/* Camera off overlay */}
+          {!camOn && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6">
+              {camPerm === 'denied' ? (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                    <VideoOff className="w-7 h-7 text-white/60" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-base font-medium text-white mb-1">Camera is blocked</p>
+                    <p className="text-sm text-white/50 max-w-xs">{camError || 'Click the 🔒 lock icon in your browser\'s address bar to allow camera access.'}</p>
+                  </div>
+                </>
+              ) : camPerm === 'prompt' || camPerm === 'unknown' ? (
+                <>
+                  <p className="text-lg font-medium text-white text-center">
+                    Do you want people to see you in the meeting?
+                  </p>
+                  <button
+                    onClick={startCamera}
+                    className="px-7 py-2.5 rounded-full bg-[#1a73e8] hover:bg-[#1558c0] text-white font-medium text-sm transition-colors shadow-lg"
+                  >
+                    Allow camera
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-xl"
+                    style={{ background: avatarColor.bg }}
+                  >
+                    {avatarInitial}
+                  </div>
+                  <span className="text-sm text-white/50">{user?.name}</span>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Name badge on video */}
+          {camOn && (
             <div className="absolute top-3 left-3">
               <span className="text-sm font-semibold text-white drop-shadow-lg">{user?.name}</span>
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl aspect-video rounded-2xl bg-[#111] shadow-2xl">
-            {!camPermAsked ? (
-              <>
-                <p className="text-xl font-medium text-white text-center px-6">
-                  Do you want people to see you in the meeting?
-                </p>
-                <button
-                  onClick={handleAllowCamera}
-                  className="px-7 py-2.5 rounded-full bg-[#1a73e8] hover:bg-[#1558c0] text-white font-medium text-sm transition-colors shadow-lg"
-                >
-                  Allow camera
-                </button>
-              </>
-            ) : (
-              <>
-                <div
-                  className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-xl"
-                  style={{ background: avatarColor.bg }}
-                >
-                  {avatarInitial}
-                </div>
-                <span className="text-sm text-white/50">{user?.name}</span>
-                {permError && (
-                  <p className="text-xs text-red-400">{permError}</p>
-                )}
-              </>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Join button — below preview */}
-        <div className="mt-8 flex flex-col items-center gap-3">
+        {/* Join button */}
+        <div className="mt-7 flex flex-col items-center gap-2">
           <button
             onClick={handleJoin}
             disabled={joining}
-            className="px-10 py-3 rounded-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-60 text-white font-semibold text-sm transition-all shadow-xl hover:shadow-[#4f46e5]/40 flex items-center gap-2"
+            className="px-10 py-3 rounded-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-60 text-white font-semibold text-sm transition-all shadow-xl hover:shadow-[#4f46e5]/30 flex items-center gap-2"
           >
             {joining
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Joining…</>
@@ -172,15 +280,32 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      {/* Bottom controls bar */}
-      <div className="flex items-center justify-between px-6 pb-8 pt-2">
+      {/* Bottom controls */}
+      <div className="flex items-center justify-between px-6 pb-8 pt-2 flex-shrink-0">
 
-        {/* Left — more options */}
-        <button className="w-10 h-10 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] flex items-center justify-center transition-colors">
-          <MoreHorizontal className="w-4 h-4 text-white/70" />
-        </button>
+        {/* Left — audio level meter (visualizer) */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-end gap-[3px] h-5">
+            {barHeights.map((maxH, i) => {
+              const active = micOn && i < volBars;
+              return (
+                <div
+                  key={i}
+                  className="w-1.5 rounded-full transition-all duration-75"
+                  style={{
+                    height: active ? `${maxH}px` : '4px',
+                    background: active ? '#4f46e5' : '#3a3a3a',
+                  }}
+                />
+              );
+            })}
+          </div>
+          <span className="text-[10px] text-white/30 uppercase tracking-wide">
+            {micOn ? 'mic level' : 'muted'}
+          </span>
+        </div>
 
-        {/* Center — mic + cam */}
+        {/* Center — mic + cam + leave */}
         <div className="flex items-center gap-4">
           <button
             onClick={handleToggleMic}
@@ -200,11 +325,13 @@ export default function LobbyPage() {
             className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 relative
               ${camOn
                 ? 'bg-[#e8eaed] text-[#202124] hover:bg-white'
-                : 'bg-[#ea4335] text-white hover:bg-[#d33828]'
+                : camPerm === 'denied'
+                  ? 'bg-[#5f6368] text-white cursor-not-allowed'
+                  : 'bg-[#ea4335] text-white hover:bg-[#d33828]'
               }`}
           >
             {camOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-            {!camPermAsked && !camOn && (
+            {!camOn && camPerm !== 'denied' && camPerm !== 'granted' && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 flex items-center justify-center text-[9px] font-bold text-black">!</span>
             )}
           </button>
@@ -220,8 +347,10 @@ export default function LobbyPage() {
           </button>
         </div>
 
-        {/* Right — spacer */}
-        <div className="w-10" />
+        {/* Right — more options */}
+        <button className="w-10 h-10 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] flex items-center justify-center transition-colors">
+          <MoreHorizontal className="w-4 h-4 text-white/70" />
+        </button>
       </div>
     </div>
   );
