@@ -576,7 +576,7 @@ export default function ChatPanel({ roomId }) {
 
           return (
             <div key={key}
-              className="group relative px-3 pt-1.5 pb-0.5"
+              className="group relative px-3 pt-2 pb-1"
               onMouseEnter={() => !isPending && setHoveredMsgId(msg._id)}
               onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
@@ -584,24 +584,21 @@ export default function ChatPanel({ roomId }) {
               onTouchMove={handleTouchEnd}
               onClick={(e) => { e.stopPropagation(); if (!isPending) setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
             >
-              <div className={`flex items-end gap-2 ${own ? 'flex-row-reverse' : 'flex-row'}`}>
-                {/* Avatar — only for others */}
-                {!own ? (
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mb-0.5 select-none"
-                    style={{ background: senderColor.bg, color: senderColor.text }} title={senderName}>
-                    {initials}
-                  </div>
-                ) : <div className="w-7 flex-shrink-0" />}
+              {/* Row: avatar + content */}
+              <div className="flex items-start gap-2.5">
+                {/* Avatar */}
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 select-none"
+                  style={{ background: senderColor.bg, color: senderColor.text }} title={senderName}>
+                  {initials.length === 1 ? initials : senderName.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+                </div>
 
-                {/* Bubble column */}
-                <div className={`flex flex-col max-w-[78%] ${own ? 'items-end' : 'items-start'}`}>
+                {/* Content column */}
+                <div className="flex-1 min-w-0">
                   {/* Name + time */}
-                  <div className={`flex items-baseline gap-1.5 mb-0.5 px-0.5 ${own ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!own && (
-                      <span className="text-[11px] font-semibold leading-none" style={{ color: senderColor.bg }}>
-                        {senderName}
-                      </span>
-                    )}
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-sm font-semibold leading-none text-[#e8eaed]">
+                      {own ? 'You' : senderName}
+                    </span>
                     <span className="text-[10px] text-[#9aa0a6] leading-none">
                       {formatTime(msg.createdAt)}
                       {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
@@ -610,36 +607,35 @@ export default function ChatPanel({ roomId }) {
 
                   {/* Reply quote */}
                   {msg.replyTo && (
-                    <div className={`mb-1 px-2 py-1 rounded-lg bg-white/6 border-l-2 border-[#8ab4f8]/60 w-full`}>
+                    <div className="mb-1.5 px-2 py-1.5 rounded-xl bg-white/6 border-l-2 border-[#8ab4f8]/60 max-w-[85%]">
                       <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
                       <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
                     </div>
                   )}
 
-                  {/* Bubble */}
-                  <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words select-text
-                    ${own
-                      ? 'bg-[#1a73e8] text-white rounded-tr-sm'
-                      : 'bg-[#2d2f32] text-[#e8eaed] rounded-tl-sm'}
-                    ${isPending ? 'opacity-60' : ''}
-                    ${msg.type === 'file' ? 'p-0 bg-transparent' : ''}`}>
-                    {msg.type === 'file' ? (
-                      <div className={`px-3 py-2 rounded-2xl ${own ? 'bg-[#1a73e8]' : 'bg-[#2d2f32]'} ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
-                        {msg.content && (
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">
-                            {msg.content}
-                          </p>
-                        )}
-                        <FileCard file={msg.file} baseUrl={baseUrl} />
-                      </div>
-                    ) : (
-                      msg.content
-                    )}
-                  </div>
+                  {/* Bubble — width fits content */}
+                  {msg.type === 'file' ? (
+                    <div className="inline-block px-3 py-2 rounded-2xl rounded-tl-sm bg-[#3a3d42] max-w-[85%]">
+                      {msg.content && (
+                        <p className="text-sm text-[#e8eaed] leading-relaxed whitespace-pre-wrap break-words mb-1">
+                          {msg.content}
+                        </p>
+                      )}
+                      <FileCard file={msg.file} baseUrl={baseUrl} />
+                    </div>
+                  ) : (
+                    <div className={`inline-block px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%]
+                      ${own ? 'bg-[#1a73e8] text-white' : 'bg-[#3a3d42] text-[#e8eaed]'}
+                      ${isPending ? 'opacity-60' : ''}`}>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">
+                        {msg.content}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Inline copy button */}
                   {!isPending && (
-                    <div className={`flex mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${own ? 'justify-end' : 'justify-start'}`}>
+                    <div className="flex mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
                         className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] text-[#9aa0a6] hover:text-white hover:bg-white/10 transition-all"
@@ -652,14 +648,12 @@ export default function ChatPanel({ roomId }) {
                   )}
 
                   {/* Reaction pills */}
-                  <div className="ml-0">
-                    <ReactionPills reactions={msg.reactions} userId={user?._id}
-                      onToggle={handleToggleReaction} messageId={msg._id} />
-                  </div>
+                  <ReactionPills reactions={msg.reactions} userId={user?._id}
+                    onToggle={handleToggleReaction} messageId={msg._id} />
                 </div>
               </div>
 
-              {/* Emoji bar — click or hover */}
+              {/* Emoji bar — hover or click */}
               {!isPending && (
                 <MessageActions
                   msg={msg}
