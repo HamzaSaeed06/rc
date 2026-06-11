@@ -244,11 +244,25 @@ function ParticipantsPanel({ user, room, peers, peerStates, raisedHands, isHandR
   const isHost = room?.host?._id === user?._id || room?.host === user?._id;
   const peerList = Object.entries(peers);
   const total = peerList.length + 1;
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyInvite = () => {
+    const link = `${window.location.origin}/lobby/${room?.roomId || ''}`;
+    navigator.clipboard.writeText(link).catch(() => {});
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2500);
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#282a2d]">
-      <div className="px-5 py-4 border-b border-white/8">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">{total} participant{total !== 1 ? 's' : ''}</p>
+      {/* Invite section */}
+      <div className="px-4 pt-4 pb-3 border-b border-white/8">
+        <p className="text-[11px] font-semibold text-[#9aa0a6] uppercase tracking-widest mb-2">{total} participant{total !== 1 ? 's' : ''}</p>
+        <button onClick={handleCopyInvite}
+          className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-[#5f6368] hover:border-[#8ab4f8] text-sm text-[#8ab4f8] hover:text-white transition-colors">
+          {linkCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+          {linkCopied ? 'Link copied!' : 'Copy invite link'}
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 custom-scrollbar">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
@@ -927,10 +941,10 @@ export default function RoomPage() {
         {/* Left — room info */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-white leading-tight">{room?.name || 'Meeting'}</span>
+            <span className="text-sm font-semibold text-white leading-tight">{room?.name || 'Meeting'}</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs text-gray-600 font-mono">{roomId}</span>
-              <button onClick={copyLink} className="text-gray-600 hover:text-gray-400 transition-colors" title="Copy link">
+              <span className="text-xs text-[#9aa0a6] font-mono">{roomId}</span>
+              <button onClick={copyLink} className="text-[#9aa0a6] hover:text-white transition-colors" title="Copy invite link">
                 {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>
@@ -1054,7 +1068,7 @@ export default function RoomPage() {
 
           {/* Leave */}
           <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 h-10 sm:h-12 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all flex-shrink-0">
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 h-10 sm:h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-sm transition-all flex-shrink-0">
             <PhoneOff className="w-4 h-4" />
             <span className="hidden sm:block">Leave</span>
           </button>

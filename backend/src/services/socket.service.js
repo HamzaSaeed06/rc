@@ -122,7 +122,7 @@ const socketHandler = (io) => {
               if (doc && doc.participants.length === 0 && doc.isActive) {
                 await Room.updateOne({ roomId }, { $set: { isActive: false, endedAt: new Date() } });
                 io.to(roomId).emit('room:ended');
-                logger.info(`Room ${roomId} auto-ended (empty for 15s grace period).`);
+                logger.info(`Room ${roomId} auto-ended (empty for 5min grace period).`);
                 if (io._scheduledEndTimers && io._scheduledEndTimers[roomId]) {
                   clearTimeout(io._scheduledEndTimers[roomId]);
                   delete io._scheduledEndTimers[roomId];
@@ -133,8 +133,8 @@ const socketHandler = (io) => {
             } finally {
               delete io._emptyRoomTimers[roomId];
             }
-          }, 15000);
-          logger.info(`Room ${roomId} is empty. Started 15s auto-end grace period.`);
+          }, 300000);
+          logger.info(`Room ${roomId} is empty. Started 5min auto-end grace period.`);
         } else if (result?.newHost) {
           io.to(roomId).emit('room:host-changed', {
             hostId: result.newHost._id,
@@ -330,7 +330,7 @@ const socketHandler = (io) => {
                 if (doc && doc.participants.length === 0 && doc.isActive) {
                   await Room.updateOne({ roomId }, { $set: { isActive: false, endedAt: new Date() } });
                   io.to(roomId).emit('room:ended');
-                  logger.info(`Room ${roomId} auto-ended (empty for 15s grace period after disconnect).`);
+                  logger.info(`Room ${roomId} auto-ended (empty for 5min grace period after disconnect).`);
                   if (io._scheduledEndTimers && io._scheduledEndTimers[roomId]) {
                     clearTimeout(io._scheduledEndTimers[roomId]);
                     delete io._scheduledEndTimers[roomId];
@@ -339,8 +339,8 @@ const socketHandler = (io) => {
               } catch (e) { } finally {
                 delete io._emptyRoomTimers[roomId];
               }
-            }, 15000);
-            logger.info(`Room ${roomId} is empty after disconnect. Started 15s auto-end grace period.`);
+            }, 300000);
+            logger.info(`Room ${roomId} is empty after disconnect. Started 5min auto-end grace period.`);
           } else if (result?.newHost) {
             io.to(roomId).emit('room:host-changed', {
               hostId: result.newHost._id,
