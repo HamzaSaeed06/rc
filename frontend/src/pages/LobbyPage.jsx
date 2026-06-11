@@ -231,18 +231,18 @@ export default function LobbyPage() {
 
               {/* Status row */}
               <div className="bg-[#303134] border border-[#5f6368]/30 rounded-xl p-3 flex items-center justify-around">
-                <div className="flex flex-col items-center gap-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${micOn ? 'bg-green-500/15' : 'bg-red-500/15'}`}>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${micOn ? 'bg-green-500/15' : 'bg-red-500/15'}`}>
                     {micOn ? <Mic className="w-3.5 h-3.5 text-green-400" /> : <MicOff className="w-3.5 h-3.5 text-red-400" />}
                   </div>
-                  <span className="text-[10px] text-[#9aa0a6]">{micOn ? 'On' : 'Off'}</span>
+                  <span className={`text-[10px] font-medium ${micOn ? 'text-green-400' : 'text-red-400'}`}>{micOn ? 'On' : 'Off'}</span>
                 </div>
                 <div className="w-px h-8 bg-[#3c4043]" />
-                <div className="flex flex-col items-center gap-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${camOn ? 'bg-green-500/15' : 'bg-red-500/15'}`}>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${camOn ? 'bg-green-500/15' : 'bg-red-500/15'}`}>
                     {camOn ? <Video className="w-3.5 h-3.5 text-green-400" /> : <VideoOff className="w-3.5 h-3.5 text-red-400" />}
                   </div>
-                  <span className="text-[10px] text-[#9aa0a6]">{camOn ? 'On' : 'Off'}</span>
+                  <span className={`text-[10px] font-medium ${camOn ? 'text-green-400' : 'text-red-400'}`}>{camOn ? 'On' : 'Off'}</span>
                 </div>
               </div>
 
