@@ -25,9 +25,10 @@ export default function AudioVisCanvas({ bars = [0, 0, 0], size = 36 }) {
     const sx    = (BUF - total) / 2;          // start x
 
     // Center X of each bar
-    const BAR_CX = [sx + BR, sx + BW + BG + BR, sx + 2 * (BW + BG) + BR];
-    const MAXH   = Math.round(CY * 0.70);         // max half-height = 70% of radius (well inside circle)
-    const MINH   = BR + 1;                        // min half-height (dot)
+    const BAR_CX  = [sx + BR, sx + BW + BG + BR, sx + 2 * (BW + BG) + BR];
+    // Center bar (low freq) is tallest — like Google Meet reference
+    const MAXH    = [Math.round(CY * 0.50), Math.round(CY * 0.72), Math.round(CY * 0.50)];
+    const MINH    = BR + 1;                        // min half-height (dot)
 
     const fillVPill = (ctx, cx, cy, half) => {
       const r    = BR;
@@ -46,7 +47,7 @@ export default function AudioVisCanvas({ bars = [0, 0, 0], size = 36 }) {
       ctx.clearRect(0, 0, BUF, BUF);
       const b = barsRef.current;
       for (let i = 0; i < 3; i++) {
-        const half = Math.max(MINH, Math.round(b[i] * MAXH));
+        const half = Math.max(MINH, Math.round(b[i] * MAXH[i]));
         ctx.fillStyle = b[i] > 0.05 ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.28)';
         fillVPill(ctx, BAR_CX[i], CY, half);
       }

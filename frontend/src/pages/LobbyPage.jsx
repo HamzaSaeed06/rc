@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, Loader2, MoreVertical, MoreHorizontal } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Loader2 } from 'lucide-react';
 import { initSocket } from '@/services/socket';
 import useAuthStore from '@/store/slices/authStore';
 import api from '@/services/api';
@@ -16,7 +16,8 @@ export default function LobbyPage() {
   const audioCtxRef  = useRef(null);
   const analyserRef  = useRef(null);
   const animRef      = useRef(null);
-  const canvasRef    = useRef(null);   // ← canvas for visualizer
+  const canvasRef    = useRef(null);
+  const smoothRef    = useRef([0, 0, 0]);  // independent per-bar smoothing values
 
   const [micOn,   setMicOn]   = useState(true);
   const [camOn,   setCamOn]   = useState(false);
@@ -62,10 +63,12 @@ export default function LobbyPage() {
   const VIS_R     = VIS_BW / 2;                          // = 4 (pill radius)
   const VIS_CY    = VIS_BUF / 2;                         // = 36
   // totalW = 3*8 + 2*6 = 36 → startX = (72-36)/2 = 18
-  const VIS_BAR_CX = [22, 36, 50];                       // center X of each bar
-  const VIS_MAXH   = Math.round(VIS_CY * 0.70);          // = 25, max half-height (70% of radius, stays inside circle)
-  const VIS_MINH   = VIS_R + 1;                          // = 5,  min (tiny dot)
-  const VIS_FIDX   = [1, 6, 14];                         // FFT bins: low/mid/high
+  const VIS_BAR_CX = [22, 36, 50];
+  // Center bar (low freq) tallest — like Google Meet reference
+  const VIS_MAXH   = [Math.round(VIS_CY * 0.50), Math.round(VIS_CY * 0.72), Math.round(VIS_CY * 0.50)];
+  const VIS_MINH   = VIS_R + 1;
+  const VIS_NOISE  = 50;
+  const VIS_SMOOTH = 0.3;
 
   // Vertical capsule centered at (cx, cy) with half-height `half`
   const fillVPill = (ctx, cx, cy, half) => {
@@ -80,21 +83,40 @@ export default function LobbyPage() {
     ctx.fill();
   };
 
-  const drawVisualizer = useCallback((analyser, dataArray) => {
+  const drawVisualizer = useCallback((analyser, dataArray, hzPerBin) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     analyser.getByteFrequencyData(dataArray);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, VIS_BUF, VIS_BUF);
 
+    let loS=0, miS=0, hiS=0, loN=0, miN=0, hiN=0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const hz = i * hzPerBin;
+      if      (hz >= 350  && hz < 700)  { loS += dataArray[i]; loN++; }
+      else if (hz >= 700  && hz < 1400) { miS += dataArray[i]; miN++; }
+      else if (hz >= 1400 && hz < 2800) { hiS += dataArray[i]; hiN++; }
+    }
+    const NG = VIS_NOISE;
+    let lo = loN > 0 ? loS / loN : 0;
+    let mi = miN > 0 ? miS / miN : 0;
+    let hi = hiN > 0 ? hiS / hiN : 0;
+    lo = lo > NG ? (lo - NG) / (255 - NG) : 0;
+    mi = mi > NG ? (mi - NG) / (255 - NG) : 0;
+    hi = hi > NG ? (hi - NG) / (255 - NG) : 0;
+
+    const s = smoothRef.current;
+    s[0] += (mi - s[0]) * VIS_SMOOTH;
+    s[1] += (lo - s[1]) * VIS_SMOOTH;
+    s[2] += (hi - s[2]) * VIS_SMOOTH;
+
     for (let i = 0; i < 3; i++) {
-      const val  = dataArray[VIS_FIDX[i]] / 255;
-      const half = Math.max(VIS_MINH, Math.round(val * VIS_MAXH));
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      const half = Math.max(VIS_MINH, Math.round(s[i] * VIS_MAXH[i]));
+      ctx.fillStyle = s[i] > 0.02 ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.28)';
       fillVPill(ctx, VIS_BAR_CX[i], VIS_CY, half);
     }
 
-    animRef.current = requestAnimationFrame(() => drawVisualizer(analyser, dataArray));
+    animRef.current = requestAnimationFrame(() => drawVisualizer(analyser, dataArray, hzPerBin));
   }, []); // eslint-disable-line
 
   const drawSilence = useCallback(() => {
@@ -116,14 +138,25 @@ export default function LobbyPage() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = audioCtx;
-      const source   = audioCtx.createMediaStreamSource(stream);
+
+      // Highpass filter — kills fan/breathing noise below 350 Hz
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 350;
+
       const analyser = audioCtx.createAnalyser();
-      analyser.fftSize        = 64;   // 32 bins — fast & smooth
-      analyser.smoothingTimeConstant = 0.5;  // responsive, not jittery
+      analyser.fftSize             = 256;
+      analyser.smoothingTimeConstant = 0.25;
       analyserRef.current = analyser;
-      source.connect(analyser);
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(filter);
+      filter.connect(analyser);
+
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      drawVisualizer(analyser, dataArray);
+      const hzPerBin  = audioCtx.sampleRate / analyser.fftSize;
+      smoothRef.current = [0, 0, 0];
+      drawVisualizer(analyser, dataArray, hzPerBin);
     } catch {}
   }, [drawVisualizer]);
 
@@ -221,9 +254,6 @@ export default function LobbyPage() {
           <span className="font-semibold text-white text-base">{user?.name}</span>
           {roomName && <span className="text-white/30 text-sm">· {roomName}</span>}
         </div>
-        <button className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:bg-white/10 transition-colors">
-          <MoreVertical className="w-5 h-5" />
-        </button>
       </div>
 
       {/* Center — video preview */}
@@ -322,22 +352,16 @@ export default function LobbyPage() {
         </div>
 
         {/* Join button */}
-        <div className="mt-7 flex flex-col items-center gap-2">
+        <div className="mt-7 flex flex-col items-center">
           <button onClick={handleJoin} disabled={joining}
-            className="px-10 py-3 rounded-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-60 text-white font-semibold text-sm transition-all shadow-xl hover:shadow-[#4f46e5]/30 flex items-center gap-2">
+            className="px-10 py-3 rounded-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-60 text-white font-semibold text-sm transition-colors flex items-center gap-2">
             {joining ? <><Loader2 className="w-4 h-4 animate-spin" /> Joining…</> : 'Join now'}
           </button>
-          <p className="text-xs text-white/30">
-            {roomName ? `Joining "${roomName}"` : 'Preparing to join…'}
-          </p>
         </div>
       </div>
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between px-6 pb-6 pt-2 flex-shrink-0">
-        <button className="w-10 h-10 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] flex items-center justify-center transition-colors">
-          <MoreHorizontal className="w-4 h-4 text-white/70" />
-        </button>
+      <div className="flex items-center justify-center px-6 pb-6 pt-2 flex-shrink-0">
         <button onClick={() => navigate('/dashboard')}
           className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] text-white/70 hover:text-white text-sm transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -345,7 +369,6 @@ export default function LobbyPage() {
           </svg>
           Back
         </button>
-        <div className="w-10" />
       </div>
     </div>
   );

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Meet Exact Audio Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #202124;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .video-panel {
+      position: relative;
+      width: 640px;
+      height: 360px;
+      background-color: #3c4043;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #webcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    /* Bottom left pill just like Google Meet pre-join */
+    .audio-indicator-wrapper {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background-color: rgba(32, 33, 36, 0.65);
+      backdrop-filter: blur(10px);
+      padding: 0 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      width: 44px;
+      box-sizing: border-box;
+    }
+
+    /* Vertical and horizontal perfect center alignment */
+    .candle-container {
+      display: flex;
+      align-items: center; 
+      justify-content: center;
+      gap: 3px; 
+      height: 24px;
+      width: 100%;
+    }
+
+    /* Baseline dots when completely silent */
+    .candle {
+      width: 3.5px;
+      height: 3.5px; 
+      background-color: #ffffff;
+      border-radius: 4px;
+      will-change: height;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="video-panel">
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <div class="audio-indicator-wrapper">
+      <div class="candle-container">
+        <div class="candle" id="barLeft"></div>
+        <div class="candle" id="barCenter"></div>
+        <div class="candle" id="barRight"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const videoElement = document.getElementById('webcam');
+    const barLeft = document.getElementById('barLeft');
+    const barCenter = document.getElementById('barCenter');
+    const barRight = document.getElementById('barRight');
+
+    let leftH = 3.5, centerH = 3.5, rightH = 3.5;
+
+    async function initMedia() {
+      try {
+        // 1. HARDWARE LEVEL NOISE CANCELLATION ACTIVATION
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true, // Browser ke default noise gate ko activate karna
+            autoGainControl: false
+          } 
+        });
+        videoElement.srcObject = stream;
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+
+        // 2. BIQUAD FILTER (Highpass Filter to kill Fan/Breathing Hum completely)
+        const filter = audioContext.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 350; // 350Hz se neeche ki sab pankhe/saans ki frequencies block.
+
+        // 3. ANALYSER SETUP
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256; 
+        analyser.smoothingTimeConstant = 0.25; // Organic drops like Meet UI
+
+        // Chain structures: Source -> Filter -> Analyser
+        source.connect(filter);
+        filter.connect(analyser);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const hzPerBin = audioContext.sampleRate / analyser.fftSize;
+
+        function renderAudioMotion() {
+          requestAnimationFrame(renderAudioMotion);
+          analyser.getByteFrequencyData(dataArray);
+
+          let speechLow = 0, speechMid = 0, speechHigh = 0;
+          let lowCount = 0, midCount = 0, highCount = 0;
+
+          // Pure frequency bin mapping for human speech
+          for (let i = 0; i < bufferLength; i++) {
+            const frequency = i * hzPerBin;
+
+            if (frequency >= 350 && frequency < 700) {
+              speechLow += dataArray[i];
+              lowCount++;
+            } else if (frequency >= 700 && frequency < 1400) {
+              speechMid += dataArray[i];
+              midCount++;
+            } else if (frequency >= 1400 && frequency < 2800) {
+              speechHigh += dataArray[i];
+              highCount++;
+            }
+          }
+
+          let lowAvg = lowCount > 0 ? speechLow / lowCount : 0;
+          let midAvg = midCount > 0 ? speechMid / midCount : 0;
+          let highAvg = highCount > 0 ? speechHigh / highCount : 0;
+
+          // 4. ADVANCED INTENSITY NOISE GATE
+          // Aggr signal value is strict filter threshold se neeche hui to 0 kardo (Pure Silence)
+          const NOISE_THRESHOLD = 50; 
+          
+          lowAvg = lowAvg > NOISE_THRESHOLD ? lowAvg - NOISE_THRESHOLD : 0;
+          midAvg = midAvg > NOISE_THRESHOLD ? midAvg - NOISE_THRESHOLD : 0;
+          highAvg = highAvg > NOISE_THRESHOLD ? highAvg - NOISE_THRESHOLD : 0;
+
+          // Dynamic Heights mapping
+          let targetLeft = 3.5 + (midAvg / (255 - NOISE_THRESHOLD)) * 14;
+          let targetCenter = 3.5 + (lowAvg / (255 - NOISE_THRESHOLD)) * 22;
+          let targetRight = 3.5 + (highAvg / (255 - NOISE_THRESHOLD)) * 14;
+
+          // Jhatke ya vibration ko rokne ke liye independent smoothing matrix
+          leftH += (targetLeft - leftH) * 0.3;
+          centerH += (targetCenter - centerH) * 0.3;
+          rightH += (targetRight - rightH) * 0.3;
+
+          // Push heights over the accurate centers (Top and Down scaling)
+          barLeft.style.height = `${Math.max(3.5, Math.min(15, leftH))}px`;
+          barCenter.style.height = `${Math.max(3.5, Math.min(22, centerH))}px`;
+          barRight.style.height = `${Math.max(3.5, Math.min(15, rightH))}px`;
+        }
+
+        renderAudioMotion();
+
+      } catch (err) {
+        console.error("Mic filter initialization failed:", err);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initMedia);
+  </script>
+</body>
+</html>
