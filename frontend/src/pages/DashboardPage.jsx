@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Video, Plus, LogOut, Users, Globe, Lock, Loader2,
-  Search, Clock, X, Eye, EyeOff, LayoutGrid, Keyboard, Check,
+  Search, Clock, X, Eye, EyeOff, LayoutGrid, Keyboard,
 } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 import api from '@/services/api';
@@ -192,7 +192,7 @@ export default function DashboardPage() {
               <div key={room._id} onClick={() => handleJoinRoom(room)}
                 className="group bg-[#303134] border border-[#5f6368]/30 hover:border-[#4f46e5]/50 rounded-xl p-5 cursor-pointer transition-all duration-200 hover:bg-[#35363a] hover:shadow-lg">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${room.isPrivate ? 'bg-amber-400/10' : 'bg-[#4f46e5]/15'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${room.isPrivate ? 'bg-amber-400/10' : 'bg-[#4f46e5]/15'}`}>
                     {room.isPrivate ? <Lock className="w-4 h-4 text-amber-400" /> : <Globe className="w-4 h-4 text-[#8ab4f8]" />}
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -279,26 +279,26 @@ export default function DashboardPage() {
                   </select>
                 </div>
               </div>
-              <label className="flex items-center gap-3 cursor-pointer p-3.5 rounded-lg bg-[#202124] border border-[#5f6368]/50 hover:border-[#5f6368] transition-all"
-                onClick={() => setNewRoom({ ...newRoom, isPrivate: !newRoom.isPrivate, password: '' })}>
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${newRoom.isPrivate ? 'bg-[#4f46e5] border-[#4f46e5]' : 'border-[#5f6368] bg-transparent'}`}>
-                  {newRoom.isPrivate && <Check className="w-3 h-3 text-white" />}
+              <div>
+                <label className="block text-xs font-medium text-[#9aa0a6] mb-1.5 flex items-center gap-1.5">
+                  <Lock className="w-3 h-3" /> Password
+                  <span className="text-[#5f6368] font-normal">(optional — leave empty for public)</span>
+                </label>
+                <input type="password" value={newRoom.password}
+                  onChange={e => setNewRoom({ ...newRoom, password: e.target.value, isPrivate: e.target.value.length > 0 })}
+                  placeholder="Set a password to make it private"
+                  className="w-full bg-[#202124] border border-[#5f6368] focus:border-[#8ab4f8] text-white placeholder-[#5f6368] rounded-lg px-4 py-2.5 text-sm focus:outline-none transition-colors"
+                  maxLength={32} />
+                {newRoom.password.length > 0 && newRoom.password.length < 4 && (
+                  <p className="text-[11px] text-amber-400 mt-1">Minimum 4 characters</p>
+                )}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className={`w-2 h-2 rounded-full ${newRoom.isPrivate ? 'bg-amber-400' : 'bg-green-400'}`} />
+                  <span className="text-[11px] text-[#9aa0a6]">
+                    {newRoom.isPrivate ? 'Private — password required to join' : 'Public — anyone with the link can join'}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-sm text-white font-medium">Private meeting</p>
-                  <p className="text-xs text-[#9aa0a6]">Requires a password to enter</p>
-                </div>
-              </label>
-              {newRoom.isPrivate && (
-                <div className="animate-fade-in">
-                  <label className="block text-xs font-medium text-[#9aa0a6] mb-1.5">Password</label>
-                  <input type="password" value={newRoom.password}
-                    onChange={e => setNewRoom({ ...newRoom, password: e.target.value })}
-                    placeholder="4–32 characters"
-                    className="w-full bg-[#202124] border border-[#5f6368] focus:border-[#8ab4f8] text-white placeholder-[#5f6368] rounded-lg px-4 py-2.5 text-sm focus:outline-none transition-colors"
-                    required minLength={4} maxLength={32} />
-                </div>
-              )}
+              </div>
               <div className="flex gap-2.5 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2.5 rounded-lg bg-[#3c4043] hover:bg-[#4a4b4f] text-[#e8eaed] text-sm font-medium transition-colors">
