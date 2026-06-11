@@ -53,40 +53,44 @@ export default function LobbyPage() {
     if (camPerm === 'granted') startCamera();
   }, [camPerm]); // eslint-disable-line
 
-  // ── Canvas visualizer draw loop ─────────────────────────────────────────────
-  // 9 bars, symmetric up+down from center, fillRect (max browser compat)
-  const NUM_BARS = 9;
-  const BAR_W    = 3;
-  const BAR_GAP  = 2;
-
+  // ── Canvas visualizer: 3 bars, vertical, center-symmetric, real FFT data ────
   const drawVisualizer = useCallback((analyser, dataArray) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx  = canvas.getContext('2d');
-    const W    = canvas.width;
-    const H    = canvas.height;
+    const ctx     = canvas.getContext('2d');
+    const W       = canvas.width;
+    const H       = canvas.height;
 
     analyser.getByteFrequencyData(dataArray);
     ctx.clearRect(0, 0, W, H);
 
-    const totalW  = NUM_BARS * BAR_W + (NUM_BARS - 1) * BAR_GAP;
-    const startX  = Math.floor((W - totalW) / 2);
+    const BAR_W   = 7;
+    const BAR_GAP = 5;
     const centerY = H / 2;
-    const maxHalf = centerY - 3;                        // leave 3px padding top/bottom
-    const step    = Math.max(1, Math.floor(dataArray.length / NUM_BARS));
+    const maxHalf = centerY - 4;
+    const totalW  = 3 * BAR_W + 2 * BAR_GAP;
+    const startX  = Math.floor((W - totalW) / 2);
 
-    for (let i = 0; i < NUM_BARS; i++) {
-      const val  = dataArray[i * step] / 255;
-      const half = Math.max(3, Math.round(val * maxHalf)); // min 3px always visible
+    // Sample 3 distinct frequency regions: low / mid / high
+    const bins     = dataArray.length;
+    const indices  = [
+      Math.floor(bins * 0.05),   // low freq
+      Math.floor(bins * 0.25),   // mid freq
+      Math.floor(bins * 0.55),   // high freq
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      const val  = dataArray[indices[i]] / 255;
+      const half = Math.max(5, Math.round(val * maxHalf));
       const x    = startX + i * (BAR_W + BAR_GAP);
 
-      // white gradient: edges fade, center bright
+      // Teal gradient — bright center, fades to edges
       const grad = ctx.createLinearGradient(0, centerY - half, 0, centerY + half);
-      grad.addColorStop(0,    'rgba(255,255,255,0.2)');
-      grad.addColorStop(0.35, 'rgba(255,255,255,0.95)');
-      grad.addColorStop(0.5,  '#ffffff');
-      grad.addColorStop(0.65, 'rgba(255,255,255,0.95)');
-      grad.addColorStop(1,    'rgba(255,255,255,0.2)');
+      grad.addColorStop(0,    'rgba(0, 230, 200, 0.15)');
+      grad.addColorStop(0.25, 'rgba(0, 230, 200, 0.85)');
+      grad.addColorStop(0.5,  '#00e6c8');
+      grad.addColorStop(0.75, 'rgba(0, 230, 200, 0.85)');
+      grad.addColorStop(1,    'rgba(0, 230, 200, 0.15)');
 
       ctx.fillStyle = grad;
       ctx.fillRect(x, centerY - half, BAR_W, half * 2);
@@ -98,19 +102,21 @@ export default function LobbyPage() {
   const drawSilence = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx   = canvas.getContext('2d');
-    const W     = canvas.width;
-    const H     = canvas.height;
+    const ctx    = canvas.getContext('2d');
+    const W      = canvas.width;
+    const H      = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    const totalW  = NUM_BARS * BAR_W + (NUM_BARS - 1) * BAR_GAP;
-    const startX  = Math.floor((W - totalW) / 2);
+    const BAR_W  = 7;
+    const BAR_GAP = 5;
     const centerY = H / 2;
+    const totalW  = 3 * BAR_W + 2 * BAR_GAP;
+    const startX  = Math.floor((W - totalW) / 2);
 
-    for (let i = 0; i < NUM_BARS; i++) {
+    for (let i = 0; i < 3; i++) {
       const x = startX + i * (BAR_W + BAR_GAP);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(x, centerY - 2, BAR_W, 4);
+      ctx.fillStyle = 'rgba(0, 230, 200, 0.25)';
+      ctx.fillRect(x, centerY - 3, BAR_W, 6);
     }
   }, []); // eslint-disable-line
 
