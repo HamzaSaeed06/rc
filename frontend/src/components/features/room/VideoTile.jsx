@@ -224,12 +224,14 @@ export default function VideoTile({
       {/* Bottom info pill */}
       <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-md max-w-[calc(100%-24px)]">
         {showMicOff ? (
-          <div className="bg-red-500 rounded-full p-0.5 shadow shrink-0">
+          <div className="bg-[#ea4335] rounded-full p-0.5 shadow shrink-0">
             <MicOff className="w-3.5 h-3.5 text-white" />
           </div>
         ) : isSpeakingActive ? (
-          <div className="bg-blue-500 rounded-full p-0.5 shadow shrink-0 animate-pulse">
-            <Volume2 className="w-3.5 h-3.5 text-white" />
+          <div className="flex items-end gap-[2px] h-[16px] shrink-0 px-0.5">
+            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-1" />
+            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-2" />
+            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-3" />
           </div>
         ) : null}
         <span className="text-xs sm:text-sm font-medium text-white truncate shadow-sm tracking-wide">

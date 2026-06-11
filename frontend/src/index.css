@@ -110,3 +110,20 @@
   70%  { transform: scale(1.2); }
   100% { transform: scale(1);   opacity: 1; }
 }
+
+/* ── Speaker bar animations (3 vertical blue lines) ── */
+@keyframes speakBar1 {
+  0%, 100% { height: 5px; }
+  40%       { height: 14px; }
+}
+@keyframes speakBar2 {
+  0%, 100% { height: 14px; }
+  40%       { height: 5px; }
+}
+@keyframes speakBar3 {
+  0%, 100% { height: 8px; }
+  40%       { height: 14px; }
+}
+.speak-bar-1 { height: 5px;  animation: speakBar1 0.75s ease-in-out infinite; }
+.speak-bar-2 { height: 14px; animation: speakBar2 0.75s ease-in-out infinite 0.15s; }
+.speak-bar-3 { height: 8px;  animation: speakBar3 0.75s ease-in-out infinite 0.30s; }
