@@ -2,10 +2,10 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
-  MessageSquare, Users, PhoneOff, Hand, LayoutGrid,
-  Copy, Check, Shield, Circle, Tv, MoreHorizontal,
-  FileText, Pin, PinOff, ChevronDown, X,
-  Upload, File, FileSpreadsheet, FileArchive, Settings,
+  MessageSquare, Users, PhoneOff, Hand, Copy, Check,
+  Circle, MoreHorizontal, FileText, X, Upload, File,
+  FileSpreadsheet, FileArchive, Settings, ChevronDown, Pin, PinOff,
+  Volume2, VolumeX, Crown, LayoutGrid,
 } from 'lucide-react';
 import { getSocket } from '@/services/socket';
 import useWebRTC from '@/hooks/useWebRTC';
@@ -16,10 +16,76 @@ import Whiteboard from '@/components/features/whiteboard/Whiteboard';
 import api from '@/services/api';
 import { getParticipantColor } from '@/utils/participantColors';
 
-const VIEW = { grid: 'grid', speaker: 'speaker' };
+// ─── Layout modes ──────────────────────────────────────────────────────────────
+const LAYOUT = {
+  auto: 'auto',
+  tiled: 'tiled',
+  spotlight: 'spotlight',
+  sidebar: 'sidebar',
+};
+
+const LAYOUT_DEFS = [
+  {
+    id: LAYOUT.auto,
+    label: 'Auto',
+    sublabel: 'Dynamic',
+    icon: (
+      <svg viewBox="0 0 36 24" fill="none" className="w-9 h-6">
+        <rect x="1" y="1" width="16" height="10" rx="2" fill="currentColor" opacity=".6"/>
+        <rect x="19" y="1" width="16" height="10" rx="2" fill="currentColor" opacity=".6"/>
+        <rect x="1" y="13" width="16" height="10" rx="2" fill="currentColor" opacity=".3"/>
+        <rect x="19" y="13" width="16" height="10" rx="2" fill="currentColor" opacity=".3"/>
+      </svg>
+    ),
+  },
+  {
+    id: LAYOUT.tiled,
+    label: 'Tiled',
+    sublabel: 'Legacy',
+    icon: (
+      <svg viewBox="0 0 36 24" fill="none" className="w-9 h-6">
+        <rect x="1" y="1" width="10" height="7" rx="1.5" fill="currentColor" opacity=".6"/>
+        <rect x="13" y="1" width="10" height="7" rx="1.5" fill="currentColor" opacity=".6"/>
+        <rect x="25" y="1" width="10" height="7" rx="1.5" fill="currentColor" opacity=".6"/>
+        <rect x="1" y="10" width="10" height="7" rx="1.5" fill="currentColor" opacity=".5"/>
+        <rect x="13" y="10" width="10" height="7" rx="1.5" fill="currentColor" opacity=".5"/>
+        <rect x="25" y="10" width="10" height="7" rx="1.5" fill="currentColor" opacity=".5"/>
+        <rect x="1" y="19" width="10" height="4" rx="1.5" fill="currentColor" opacity=".3"/>
+        <rect x="13" y="19" width="10" height="4" rx="1.5" fill="currentColor" opacity=".3"/>
+        <rect x="25" y="19" width="10" height="4" rx="1.5" fill="currentColor" opacity=".3"/>
+      </svg>
+    ),
+  },
+  {
+    id: LAYOUT.spotlight,
+    label: 'Spotlight',
+    sublabel: 'Speaker',
+    icon: (
+      <svg viewBox="0 0 36 24" fill="none" className="w-9 h-6">
+        <rect x="1" y="1" width="26" height="22" rx="2" fill="currentColor" opacity=".7"/>
+        <rect x="29" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/>
+        <rect x="29" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/>
+        <rect x="29" y="17" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/>
+      </svg>
+    ),
+  },
+  {
+    id: LAYOUT.sidebar,
+    label: 'Sidebar',
+    sublabel: 'Side view',
+    icon: (
+      <svg viewBox="0 0 36 24" fill="none" className="w-9 h-6">
+        <rect x="1" y="1" width="22" height="22" rx="2" fill="currentColor" opacity=".7"/>
+        <rect x="25" y="1" width="10" height="5" rx="1.5" fill="currentColor" opacity=".4"/>
+        <rect x="25" y="8" width="10" height="5" rx="1.5" fill="currentColor" opacity=".4"/>
+        <rect x="25" y="15" width="10" height="5" rx="1.5" fill="currentColor" opacity=".4"/>
+      </svg>
+    ),
+  },
+];
+
 const PANELS = { chat: 'chat', participants: 'participants', whiteboard: 'whiteboard', files: 'files' };
 
-// ─── Grid helper — returns grid cols + row count so tiles fill the screen ─────
 function getGridLayout(n) {
   if (n <= 1) return { cols: 1, rows: 1 };
   if (n <= 2) return { cols: 2, rows: 1 };
@@ -29,7 +95,7 @@ function getGridLayout(n) {
   return { cols: 4, rows: Math.ceil(n / 4) };
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ─── Toast ─────────────────────────────────────────────────────────────────────
 function useToasts() {
   const [toasts, setToasts] = useState([]);
   const add = useCallback((msg, type = 'info') => {
@@ -42,7 +108,7 @@ function useToasts() {
 
 function ToastList({ toasts }) {
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none">
       {toasts.map(t => (
         <div key={t.id} className={`text-xs font-semibold px-4 py-2 rounded-full shadow-xl border backdrop-blur-md animate-fade-in
           ${t.type === 'join' ? 'bg-green-900/80 border-green-500/40 text-green-300'
@@ -60,23 +126,65 @@ function Av({ userId, name, size = 8 }) {
   const c = getParticipantColor(userId || name || 'x');
   return (
     <div style={{ background: c.bg, color: c.text, width: `${size * 4}px`, height: `${size * 4}px` }}
-      className="rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+      className="rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-md">
       {(name || '?').charAt(0).toUpperCase()}
     </div>
   );
 }
 
-// ─── Leave modal ──────────────────────────────────────────────────────────────
+// ─── Leave Modal ──────────────────────────────────────────────────────────────
 function LeaveModal({ isHost, onEnd, onLeave, onCancel }) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onCancel}>
-      <div className="bg-[#1a1a2a] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[300] p-4 backdrop-blur-sm" onClick={onCancel}>
+      <div className="bg-[#1a1a26] border border-white/12 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-bold text-white mb-1">{isHost ? 'Leave or end?' : 'Leave meeting?'}</h3>
         <p className="text-sm text-gray-400 mb-5">{isHost ? 'You can end for everyone or just leave.' : 'Others will continue the meeting.'}</p>
         <div className="flex flex-col gap-2">
           {isHost && <button onClick={onEnd} className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors">End for Everyone</button>}
-          <button onClick={onLeave} className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${isHost ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}>{isHost ? 'Leave (pass host)' : 'Leave'}</button>
+          <button onClick={onLeave} className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${isHost ? 'bg-white/10 hover:bg-white/15 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}>{isHost ? 'Leave (pass host)' : 'Leave'}</button>
           <button onClick={onCancel} className="w-full py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 text-sm font-semibold transition-colors">Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout Picker Modal ──────────────────────────────────────────────────────
+function LayoutPicker({ current, onChange, onClose }) {
+  return (
+    <div className="fixed inset-0 z-[300] flex items-end justify-center pb-24" onClick={onClose}>
+      <div className="bg-[#1a1a26] border border-white/12 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-slide-up mx-4"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-white">Change layout</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-500 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          {LAYOUT_DEFS.map((l) => (
+            <button key={l.id}
+              onClick={() => { onChange(l.id); onClose(); }}
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all text-left
+                ${current === l.id
+                  ? 'bg-indigo-600/20 border border-indigo-500/40 text-white'
+                  : 'hover:bg-white/6 border border-transparent text-gray-300'}`}>
+              <div className={`flex-shrink-0 ${current === l.id ? 'text-indigo-400' : 'text-gray-500'}`}>
+                {l.icon}
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold leading-tight">{l.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{l.sublabel}</div>
+              </div>
+              {current === l.id && (
+                <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -90,16 +198,15 @@ function ParticipantsPanel({ user, room, peers, peerStates, raisedHands, isHandR
   const total = peerList.length + 1;
 
   return (
-    <div className="flex flex-col h-full bg-[#0f0f18]">
+    <div className="flex flex-col h-full bg-[#12121c]">
       <div className="px-5 py-4 border-b border-white/8">
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">{total} participant{total !== 1 ? 's' : ''}</p>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 custom-scrollbar">
-        {/* Self */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
           <Av userId={user?._id} name={user?.name} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm font-medium text-white truncate">{user?.name}</span>
               <span className="text-[10px] text-gray-500 bg-white/8 px-1.5 py-0.5 rounded-full">You</span>
               {isHost && <span className="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">Host</span>}
@@ -111,7 +218,6 @@ function ParticipantsPanel({ user, room, peers, peerStates, raisedHands, isHandR
             {!videoEnabled && <div className="p-1 rounded-full bg-red-500/15"><VideoOff className="w-3 h-3 text-red-400" /></div>}
           </div>
         </div>
-        {/* Peers */}
         {peerList.map(([sid, { user: pu }]) => {
           const audioOff = peerStates[sid]?.audioEnabled === false;
           const videoOff = peerStates[sid]?.videoEnabled === false;
@@ -121,7 +227,7 @@ function ParticipantsPanel({ user, room, peers, peerStates, raisedHands, isHandR
             <div key={sid} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group">
               <Av userId={pu?._id} name={pu?.name} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-sm font-medium text-white truncate">{pu?.name || 'Participant'}</span>
                   {isPeerHost && <span className="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">Host</span>}
                   {hand && <span>✋</span>}
@@ -136,11 +242,10 @@ function ParticipantsPanel({ user, room, peers, peerStates, raisedHands, isHandR
                     <MicOff className="w-3 h-3" />
                   </button>
                 )}
-                {/* Host transfer button — only visible to current host, not for other hosts */}
                 {isHost && !isPeerHost && (
                   <button onClick={() => onMakeHost(pu?._id)}
                     className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-amber-500/20 text-amber-400 transition-all" title="Make host">
-                    <ChevronDown className="w-3 h-3 rotate-180" />
+                    <Crown className="w-3 h-3" />
                   </button>
                 )}
               </div>
@@ -158,25 +263,29 @@ function fileIcon(name) {
   if (['pdf'].includes(ext)) return <FileText className="w-5 h-5 text-red-400" />;
   if (['xls', 'xlsx', 'csv'].includes(ext)) return <FileSpreadsheet className="w-5 h-5 text-green-400" />;
   if (['zip', 'rar', 'tar', 'gz'].includes(ext)) return <FileArchive className="w-5 h-5 text-amber-400" />;
-  return <File className="w-5 h-5 text-blue-400" />;
+  return <File className="w-5 h-5 text-indigo-400" />;
 }
 
 function FilesPanel({ roomId }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const inputRef = useRef();
 
-  // Initial load
   useEffect(() => {
-    api.get(`/files/room/${roomId}`).then(r => setFiles(r.data?.data?.files || [])).catch(() => { });
+    api.get(`/files/room/${roomId}`)
+      .then(r => setFiles(r.data?.data?.files || []))
+      .catch(() => { });
   }, [roomId]);
 
-  // Real-time: listen for file uploads from other participants
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
     const handler = ({ file }) => {
-      if (file) setFiles(prev => [...prev, file]);
+      if (file) setFiles(prev => {
+        const already = prev.some(f => (f._id || f.id) === (file._id || file.id));
+        return already ? prev : [...prev, file];
+      });
     };
     socket.on('file:uploaded', handler);
     return () => socket.off('file:uploaded', handler);
@@ -184,19 +293,26 @@ function FilesPanel({ roomId }) {
 
   const handleFiles = async (chosen) => {
     if (!chosen?.length) return;
+    const file = chosen[0];
     setUploading(true);
+    setUploadError('');
     try {
       const form = new FormData();
-      form.append('file', chosen[0]);
+      form.append('file', file);
       form.append('roomId', roomId);
       const { data } = await api.post('/files/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const uploaded = data.data.file;
-      // Update own list immediately
-      setFiles(p => [...p, uploaded]);
-      // Notify other participants in real-time
-      const socket = getSocket();
-      socket?.emit('file:uploaded', { roomId, file: uploaded });
-    } catch { /* silent */ } finally { setUploading(false); }
+      const uploaded = data?.data?.file || data?.data;
+      if (uploaded) {
+        setFiles(p => {
+          const already = p.some(f => (f._id || f.id) === (uploaded._id || uploaded.id));
+          return already ? p : [...p, uploaded];
+        });
+        const socket = getSocket();
+        socket?.emit('file:uploaded', { roomId, file: uploaded });
+      }
+    } catch (err) {
+      setUploadError(err.response?.data?.message || 'Upload failed. Try again.');
+    } finally { setUploading(false); }
   };
 
   const handleDrop = (e) => {
@@ -211,43 +327,50 @@ function FilesPanel({ roomId }) {
     return `${(b / 1048576).toFixed(1)} MB`;
   };
 
-  const fmtTime = (d) => {
-    if (!d) return '';
-    return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const fmtTime = (d) => d ? new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+  const getFileName = (f) => f.originalName || f.file?.originalName || f.fileName || f.file?.fileName || 'File';
+  const getFilePath = (f) => f.fileName || f.file?.fileName || '';
 
   return (
-    <div className="flex flex-col h-full bg-[#0f0f18]">
+    <div className="flex flex-col h-full bg-[#12121c]">
       <div className="px-5 py-4 border-b border-white/8">
         <p className="text-sm font-bold text-white">Shared Files</p>
         <p className="text-xs text-gray-500 mt-0.5">{files.length} file{files.length !== 1 ? 's' : ''}</p>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar flex flex-col gap-3">
-        {/* Upload zone */}
         <div
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
-          onClick={() => inputRef.current?.click()}
-          className="border border-dashed border-white/20 rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-white/40 hover:bg-white/3 transition-all"
+          onClick={() => !uploading && inputRef.current?.click()}
+          className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center gap-2 transition-all
+            ${uploading ? 'border-indigo-500/40 bg-indigo-500/5 cursor-wait' : 'border-white/15 cursor-pointer hover:border-indigo-500/40 hover:bg-indigo-500/5'}`}
         >
-          <div className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center">
-            <Upload className="w-5 h-5 text-gray-400" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${uploading ? 'bg-indigo-500/20' : 'bg-white/8'}`}>
+            <Upload className={`w-5 h-5 ${uploading ? 'text-indigo-400 animate-bounce' : 'text-gray-400'}`} />
           </div>
           <p className="text-sm font-semibold text-white">{uploading ? 'Uploading…' : 'Share a file'}</p>
-          <p className="text-xs text-gray-500 text-center">Drag &amp; drop or click to browse</p>
+          <p className="text-xs text-gray-500 text-center">Drag & drop or click to browse · Max 50MB</p>
           <input ref={inputRef} type="file" className="hidden" onChange={e => handleFiles(e.target.files)} />
         </div>
 
-        {/* File list */}
+        {uploadError && (
+          <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-3 py-2.5 text-xs text-red-400">
+            {uploadError}
+          </div>
+        )}
+
         {files.map((f, i) => (
-          <a key={i} href={`/uploads/${f.fileName || f.file?.fileName}`} download target="_blank" rel="noreferrer"
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-white/5 hover:bg-white/9 border border-white/8 transition-all">
-            <div className="flex-shrink-0">{fileIcon(f.originalName || f.file?.originalName)}</div>
+          <a key={f._id || f.id || i}
+            href={getFilePath(f) ? `/uploads/${getFilePath(f)}` : '#'}
+            download={getFileName(f)} target="_blank" rel="noreferrer"
+            className="flex items-center gap-3 p-3.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/8 hover:border-white/14 transition-all">
+            <div className="flex-shrink-0">{fileIcon(getFileName(f))}</div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{f.originalName || f.file?.originalName || 'File'}</p>
+              <p className="text-sm font-medium text-white truncate">{getFileName(f)}</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {fmtSize(f.size || f.file?.size)}
-                {f.uploadedBy?.name && ` · ${f.uploadedBy.name}`}
+                {(f.uploadedBy?.name || f.sender?.name) && ` · ${f.uploadedBy?.name || f.sender?.name}`}
                 {f.createdAt && ` · ${fmtTime(f.createdAt)}`}
               </p>
             </div>
@@ -259,18 +382,18 @@ function FilesPanel({ roomId }) {
 }
 
 // ─── More dropdown ────────────────────────────────────────────────────────────
-function MoreMenu({ onRecord, onWhiteboard, onFiles, isScreenSharing, onStopShare, isHandRaised, onHandRaise, onSettings, onClose }) {
+function MoreMenu({ onRecord, isRecording, onWhiteboard, onFiles, isScreenSharing, onStopShare, isHandRaised, onHandRaise, onSettings, onClose }) {
   const items = [
-    { icon: <Circle className="w-4 h-4 text-red-400" />, label: 'Record Meeting', action: onRecord },
+    { icon: <Circle className={`w-4 h-4 ${isRecording ? 'text-red-400 animate-pulse' : 'text-gray-300'}`} />, label: isRecording ? 'Stop Recording' : 'Record Meeting', action: onRecord },
     { icon: <LayoutGrid className="w-4 h-4 text-gray-300" />, label: 'Open Whiteboard', action: onWhiteboard },
     { icon: <FileText className="w-4 h-4 text-gray-300" />, label: 'Share Files', action: onFiles },
+    { icon: <Hand className="w-4 h-4 text-gray-300" />, label: isHandRaised ? 'Lower Hand' : 'Raise Hand', action: onHandRaise },
+    ...(isScreenSharing ? [{ icon: <MonitorOff className="w-4 h-4 text-orange-400" />, label: 'Stop Sharing Screen', action: onStopShare }] : []),
     { icon: <Settings className="w-4 h-4 text-gray-300" />, label: 'Settings', action: onSettings },
-    ...(isScreenSharing ? [{ icon: <MonitorOff className="w-4 h-4 text-gray-300" />, label: 'Stop sharing', action: onStopShare }] : []),
-    { icon: <Hand className="w-4 h-4 text-gray-300" />, label: isHandRaised ? 'Lower hand' : 'Raise hand', action: onHandRaise },
   ];
 
   return (
-    <div className="absolute top-full mt-3 right-0 w-52 bg-[#1a1a28] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in">
+    <div className="fixed bottom-20 right-6 w-56 bg-[#1a1a28] border border-white/12 rounded-2xl shadow-2xl overflow-hidden z-[400] animate-slide-up">
       {items.map((item, i) => (
         <button key={i} onClick={() => { item.action?.(); onClose(); }}
           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-200 hover:bg-white/8 transition-colors text-left">
@@ -282,73 +405,8 @@ function MoreMenu({ onRecord, onWhiteboard, onFiles, isScreenSharing, onStopShar
   );
 }
 
-// ─── Control button ───────────────────────────────────────────────────────────
-function CtrlBtn({ onClick, active, danger, title, children, badge }) {
-  return (
-    <div className="relative flex flex-col items-center gap-1">
-      <button
-        onClick={onClick}
-        title={title}
-        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 relative
-          ${danger ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-            : active ? 'bg-white/20 text-white hover:bg-white/25'
-              : 'bg-[#23233a] text-gray-200 hover:bg-[#2e2e48]'}`}
-      >
-        {children}
-        {badge && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary-500 rounded-full text-[9px] font-bold flex items-center justify-center text-white">
-            {badge}
-          </span>
-        )}
-      </button>
-    </div>
-  );
-}
-
-
-// ─── Grid View (Google Meet style — tiles fill the full screen) ───────────────
-function GridView({ peers, localStream, screenStream, isScreenSharing, audioEnabled, videoEnabled, peerStates, screenSharingPeers, raisedHands, isHandRaised, user, room, onMute, setPinnedUser, setViewMode }) {
-  const peerList = Object.entries(peers);
-  const total = peerList.length + 1;
-  const isHost = room?.host?._id === user?._id || room?.host === user?._id;
-  const { cols, rows } = getGridLayout(total);
-
-  return (
-    <div className="flex-1 overflow-hidden p-2 sm:p-4 pb-20">
-      <div
-        className="w-full h-full grid gap-3 sm:gap-4 place-content-center mx-auto"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-          maxWidth: cols > rows ? '100%' : `${cols * 95}vh` // keep roughly reasonable aspect constraints
-        }}
-      >
-        <div className="rounded-2xl overflow-hidden min-h-0">
-          <VideoTile stream={isScreenSharing ? screenStream : localStream} user={user} isLocal muted
-            videoDisabled={isScreenSharing ? false : !videoEnabled} isHandRaised={isHandRaised}
-            audioEnabled={audioEnabled} videoEnabled={videoEnabled}
-            onPin={() => { setPinnedUser('local'); setViewMode(VIEW.speaker); }} isHost={isHost} isScreenShare={isScreenSharing} />
-        </div>
-        {peerList.map(([sid]) => {
-          const sharing = screenSharingPeers.has(sid);
-          return (
-            <div key={sid} className="rounded-2xl overflow-hidden min-h-0">
-              <VideoTile stream={peers[sid]?.stream} user={peers[sid]?.user} muted={false}
-                videoDisabled={sharing ? false : peerStates[sid]?.videoEnabled === false}
-                isHandRaised={raisedHands[sid] === true}
-                onPin={() => { setPinnedUser(sid); setViewMode(VIEW.speaker); }}
-                isCurrentUserHost={isHost} onMuteParticipant={() => onMute(sid)}
-                isHost={room?.host?._id === peers[sid]?.user?._id} isScreenShare={sharing} />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Settings Modal (Mid-Call Device Selection) ───────────────────────────────
-function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId, user }) {
+// ─── Settings Modal ───────────────────────────────────────────────────────────
+function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }) {
   const [audioDevices, setAudioDevices] = useState([]);
   const [videoDevices, setVideoDevices] = useState([]);
   const [selectedAudio, setSelectedAudio] = useState(currentAudioId || localStorage.getItem('syncspace_mic_id') || '');
@@ -367,27 +425,24 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId, 
     try {
       if (selectedVideo !== localStorage.getItem('syncspace_cam_id')) await switchDevice('video', selectedVideo);
       if (selectedAudio !== localStorage.getItem('syncspace_mic_id')) await switchDevice('audio', selectedAudio);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch { }
     setSaving(false);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-[#111120] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="bg-[#141420] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 animate-scale-in">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-white flex items-center gap-2"><Settings className="w-5 h-5" /> Settings</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
-
         <div className="space-y-5">
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 flex items-center gap-1.5 uppercase tracking-wider"><Mic className="w-3.5 h-3.5" /> Microphone</label>
+            <label className="text-xs text-gray-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider font-semibold"><Mic className="w-3.5 h-3.5" /> Microphone</label>
             <div className="relative">
               <select value={selectedAudio} onChange={e => setSelectedAudio(e.target.value)}
-                className="w-full bg-[#1a1a2a] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-primary-500">
+                className="w-full bg-[#1a1a26] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-indigo-500/50">
                 {audioDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${d.deviceId.slice(0, 5)}`}</option>)}
                 {audioDevices.length === 0 && <option value="">No microphone found</option>}
               </select>
@@ -395,10 +450,10 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId, 
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 flex items-center gap-1.5 uppercase tracking-wider"><Video className="w-3.5 h-3.5" /> Camera</label>
+            <label className="text-xs text-gray-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider font-semibold"><Video className="w-3.5 h-3.5" /> Camera</label>
             <div className="relative">
               <select value={selectedVideo} onChange={e => setSelectedVideo(e.target.value)}
-                className="w-full bg-[#1a1a2a] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-primary-500">
+                className="w-full bg-[#1a1a26] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-indigo-500/50">
                 {videoDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${d.deviceId.slice(0, 5)}`}</option>)}
                 {videoDevices.length === 0 && <option value="">No camera found</option>}
               </select>
@@ -406,11 +461,11 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId, 
             </div>
           </div>
         </div>
-
         <div className="mt-8 flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 disabled:opacity-50">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white shadow-lg disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 transition-colors">Cancel</button>
+          <button onClick={handleSave} disabled={saving}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -418,55 +473,114 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId, 
   );
 }
 
-// ─── Speaker View (Google Meet style — 1 large, group on right) ───────────────
-function SpeakerView({ peers, localStream, screenStream, isScreenSharing, audioEnabled, videoEnabled, peerStates, screenSharingPeers, raisedHands, isHandRaised, user, room, onMute, pinnedUser, setPinnedUser, hasPanel }) {
+// ─── Control button ───────────────────────────────────────────────────────────
+function CtrlBtn({ onClick, active, danger, title, children, badge, label }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <button onClick={onClick} title={title}
+        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 relative
+          ${danger ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 ring-1 ring-red-500/30'
+            : active ? 'bg-indigo-600/25 text-indigo-300 hover:bg-indigo-600/35 ring-1 ring-indigo-500/40'
+              : 'bg-white/8 text-gray-200 hover:bg-white/14 hover:text-white'}`}
+      >
+        {children}
+        {badge > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-500 rounded-full text-[9px] font-bold flex items-center justify-center text-white">
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
+      </button>
+      {label && <span className="text-[10px] text-gray-500 font-medium leading-none">{label}</span>}
+    </div>
+  );
+}
+
+// ─── Grid View ────────────────────────────────────────────────────────────────
+function GridView({ peers, localStream, screenStream, isScreenSharing, audioEnabled, videoEnabled, peerStates, screenSharingPeers, raisedHands, isHandRaised, user, room, onMute, setPinnedUser, setLayout }) {
+  const peerList = Object.entries(peers);
+  const total = peerList.length + 1;
+  const isHost = room?.host?._id === user?._id || room?.host === user?._id;
+  const { cols, rows } = getGridLayout(total);
+
+  return (
+    <div className="flex-1 overflow-hidden p-2 sm:p-3 pb-20">
+      <div className="w-full h-full grid gap-2 sm:gap-3 place-content-center mx-auto"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+        }}>
+        <div className="rounded-2xl overflow-hidden min-h-0">
+          <VideoTile stream={isScreenSharing ? screenStream : localStream} user={user} isLocal muted
+            videoDisabled={isScreenSharing ? false : !videoEnabled}
+            isHandRaised={isHandRaised} audioEnabled={audioEnabled} videoEnabled={videoEnabled}
+            onPin={() => { setPinnedUser('local'); setLayout(LAYOUT.spotlight); }}
+            isHost={isHost} isScreenShare={isScreenSharing} />
+        </div>
+        {peerList.map(([sid]) => {
+          const sharing = screenSharingPeers.has(sid);
+          return (
+            <div key={sid} className="rounded-2xl overflow-hidden min-h-0">
+              <VideoTile stream={peers[sid]?.stream} user={peers[sid]?.user} muted={false}
+                videoDisabled={sharing ? false : peerStates[sid]?.videoEnabled === false}
+                isHandRaised={raisedHands[sid] === true}
+                onPin={() => { setPinnedUser(sid); setLayout(LAYOUT.spotlight); }}
+                isCurrentUserHost={isHost} onMuteParticipant={() => onMute(sid)}
+                isHost={room?.host?._id === peers[sid]?.user?._id} isScreenShare={sharing} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Speaker View ─────────────────────────────────────────────────────────────
+function SpeakerView({ peers, localStream, screenStream, isScreenSharing, audioEnabled, videoEnabled, peerStates, screenSharingPeers, raisedHands, isHandRaised, user, room, onMute, pinnedUser, setPinnedUser, hasPanel, layout }) {
   const peerList = Object.entries(peers);
   const isHost = room?.host?._id === user?._id || room?.host === user?._id;
 
-  // Find pinned or sharing or local user
   let mainPeerId = pinnedUser;
   if (!mainPeerId && isScreenSharing) mainPeerId = 'local';
   if (!mainPeerId) {
     const sharingPeer = peerList.find(([sid]) => screenSharingPeers.has(sid));
     if (sharingPeer) mainPeerId = sharingPeer[0];
   }
-  if (!mainPeerId) mainPeerId = 'local'; // default to local if nobody pinned and no screen sharing
+  if (!mainPeerId) mainPeerId = 'local';
 
   const mainIsLocal = mainPeerId === 'local';
   const mainStream = mainIsLocal ? (isScreenSharing ? screenStream : localStream) : peers[mainPeerId]?.stream;
   const mainUser = mainIsLocal ? user : peers[mainPeerId]?.user;
   const mainSharing = mainIsLocal ? isScreenSharing : screenSharingPeers.has(mainPeerId);
 
-  // Group others for the sidebar
   const sidePeers = peerList.filter(([sid]) => sid !== mainPeerId);
   const showLocalInSide = !mainIsLocal;
+  const isHorizontalSide = layout === LAYOUT.sidebar;
 
-  // Responsive logic: if there is an active side panel, the right bar might get too cramped,
-  // but CSS Flex does a good job scaling it down. Let's make the right bar vertical or horizontal on mobile.
   return (
-    <div className="flex-1 overflow-hidden p-2 flex flex-col lg:flex-row gap-2">
-      {/* Main dominant view */}
-      <div className="flex-1 rounded-2xl overflow-hidden min-h-0 relative bg-dark-900 border border-white/5 shadow-inner">
+    <div className={`flex-1 overflow-hidden p-2 flex ${isHorizontalSide ? 'flex-col' : 'flex-col lg:flex-row'} gap-2`}>
+      <div className="flex-1 rounded-2xl overflow-hidden min-h-0 relative bg-[#141420] border border-white/5 shadow-inner">
         <VideoTile stream={mainStream} user={mainUser} isLocal={mainIsLocal} muted={mainIsLocal}
           videoDisabled={mainSharing ? false : (mainIsLocal ? !videoEnabled : peerStates[mainPeerId]?.videoEnabled === false)}
           isHandRaised={mainIsLocal ? isHandRaised : raisedHands[mainPeerId] === true}
-          isHost={room?.host?._id === mainUser?._id} isScreenShare={mainSharing} isPinned={true} onPin={() => setPinnedUser(null)} />
+          audioEnabled={mainIsLocal ? audioEnabled : undefined}
+          videoEnabled={mainIsLocal ? videoEnabled : undefined}
+          isCurrentUserHost={isHost} onMuteParticipant={!mainIsLocal ? () => onMute(mainPeerId) : undefined}
+          isHost={mainIsLocal ? isHost : room?.host?._id === mainUser?._id}
+          isScreenShare={mainSharing} isPinned={true} onPin={() => setPinnedUser(null)} />
       </div>
 
-      {/* Side thumbnail group */}
-      <div className={`flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden min-h-[140px] lg:min-h-0
-        ${hasPanel ? 'lg:w-44' : 'lg:w-56'} lg:pr-1 custom-scrollbar`}>
-
+      <div className={`flex gap-2 ${isHorizontalSide ? 'flex-row overflow-x-auto h-28' : 'lg:flex-col lg:w-44 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden lg:min-h-0 min-h-[120px]'} lg:pr-1 custom-scrollbar`}>
         {showLocalInSide && (
-          <div className="flex-shrink-0 w-44 lg:w-full aspect-video rounded-xl overflow-hidden bg-dark-900 border border-white/10 hover:border-white/20 transition-colors shadow">
-            <VideoTile stream={localStream} user={user} isLocal muted videoDisabled={!videoEnabled} isHandRaised={isHandRaised} audioEnabled={audioEnabled} videoEnabled={videoEnabled} isPinned={false} isHost={isHost} onPin={() => setPinnedUser('local')} />
+          <div className="flex-shrink-0 w-40 lg:w-full aspect-video rounded-xl overflow-hidden bg-[#141420] border border-white/10 hover:border-white/20 transition-colors">
+            <VideoTile stream={localStream} user={user} isLocal muted videoDisabled={!videoEnabled}
+              isHandRaised={isHandRaised} audioEnabled={audioEnabled} videoEnabled={videoEnabled}
+              isPinned={false} isHost={isHost} onPin={() => setPinnedUser('local')} />
           </div>
         )}
-
         {sidePeers.map(([sid]) => {
           const sharing = screenSharingPeers.has(sid);
           return (
-            <div key={sid} className="flex-shrink-0 w-44 lg:w-full aspect-video rounded-xl overflow-hidden bg-dark-900 border border-white/10 hover:border-white/20 transition-colors shadow">
+            <div key={sid} className="flex-shrink-0 w-40 lg:w-full aspect-video rounded-xl overflow-hidden bg-[#141420] border border-white/10 hover:border-white/20 transition-colors">
               <VideoTile stream={peers[sid]?.stream} user={peers[sid]?.user} muted={false}
                 videoDisabled={sharing ? false : peerStates[sid]?.videoEnabled === false}
                 isHandRaised={raisedHands[sid] === true} isPinned={false} onPin={() => setPinnedUser(sid)}
@@ -481,7 +595,7 @@ function SpeakerView({ peers, localStream, screenStream, isScreenSharing, audioE
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
+// MAIN ROOM PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function RoomPage() {
@@ -494,6 +608,7 @@ export default function RoomPage() {
     audioEnabled, videoEnabled, peerStates, handleMediaToggle,
     getLocalStream, addPeer, receivePeer, handleAnswer, handleIceCandidate,
     removePeer, toggleAudio, toggleVideo, startScreenShare, stopScreenShare, cleanup,
+    switchDevice,
   } = useWebRTC(roomId);
 
   const [room, setRoom] = useState(null);
@@ -504,26 +619,26 @@ export default function RoomPage() {
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [showLayoutPicker, setShowLayoutPicker] = useState(false);
   const [pinnedUser, setPinnedUser] = useState(null);
   const [screenSharingPeers, setScreenSharingPeers] = useState(new Set());
-  const [viewMode, setViewMode] = useState(VIEW.grid);
-  const [showMore, setShowMore] = useState(false);
-  // Recording — uses real MediaRecorder API
+  const [layout, setLayout] = useState(LAYOUT.auto);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const [copied, setCopied] = useState(false);
   const [clockTime, setClockTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const [duration, setDuration] = useState('0:00');
+  const [unreadChat, setUnreadChat] = useState(0);
 
   const { toasts, addToast } = useToasts();
   const audioRef = useRef(audioEnabled);
   const moreRef = useRef(null);
-  const containerRef = useRef(null);
 
   useEffect(() => { audioRef.current = audioEnabled; }, [audioEnabled]);
 
-  // clock — uses room.createdAt so timer survives page refreshes
+  // Clock
   useEffect(() => {
     const start = room?.createdAt ? new Date(room.createdAt).getTime() : Date.now();
     const tick = () => {
@@ -541,14 +656,27 @@ export default function RoomPage() {
     return () => clearInterval(id);
   }, [room]);
 
-  // close more menu on outside click
+  // Close more/layout on outside click
   useEffect(() => {
-    const h = (e) => { if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false); };
+    const h = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false);
+    };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  // keyboard shortcuts
+  // Track unread chat messages
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handler = () => {
+      if (activePanel !== PANELS.chat) setUnreadChat(n => n + 1);
+    };
+    socket.on('chat:message', handler);
+    return () => socket.off('chat:message', handler);
+  }, [activePanel]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const h = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -557,16 +685,16 @@ export default function RoomPage() {
       else if (k === 'V') toggleVideo();
       else if (k === 'S') handleScreenShare();
       else if (k === 'H') handleHandRaise();
-      else if (k === 'C') setActivePanel(p => p === PANELS.chat ? null : PANELS.chat);
-      else if (k === 'P') setActivePanel(p => p === PANELS.participants ? null : PANELS.participants);
-      else if (k === 'G') setViewMode(v => v === VIEW.grid ? VIEW.speaker : VIEW.grid);
+      else if (k === 'C') togglePanel(PANELS.chat);
+      else if (k === 'P') togglePanel(PANELS.participants);
+      else if (k === 'L') setShowLayoutPicker(v => !v);
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toggleAudio, toggleVideo]);
 
-  // ── Room init ────────────────────────────────────────────────────────────────
+  // Room init
   useEffect(() => {
     let live = true;
     (async () => {
@@ -627,7 +755,7 @@ export default function RoomPage() {
     });
     socket.on('screen:started', ({ socketId, name }) => {
       setScreenSharingPeers(p => { const n = new Set(p); n.add(socketId); return n; });
-      setViewMode(VIEW.speaker); setPinnedUser(socketId);
+      setLayout(LAYOUT.spotlight); setPinnedUser(socketId);
       addToast(`${name || 'Someone'} is presenting`);
     });
     socket.on('screen:stopped', ({ socketId }) => {
@@ -650,7 +778,7 @@ export default function RoomPage() {
     } else {
       try {
         await startScreenShare(); socket?.emit('screen:start', { roomId });
-        setViewMode(VIEW.speaker); setPinnedUser('local');
+        setLayout(LAYOUT.spotlight); setPinnedUser('local');
       } catch { addToast('Screen share cancelled'); }
     }
   };
@@ -669,13 +797,10 @@ export default function RoomPage() {
     catch { addToast('Failed to end meeting'); }
   };
 
-  // ── Recording (real MediaRecorder) ───────────────────────────────────────────
   const handleRecord = useCallback(() => {
     if (isRecording) {
-      // Stop recording and download
       mediaRecorderRef.current?.stop();
     } else {
-      // Start recording the local stream
       const stream = localStream;
       if (!stream) { addToast('No local stream to record'); return; }
       try {
@@ -686,103 +811,102 @@ export default function RoomPage() {
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url;
-          a.download = `meeting-${roomId}-${Date.now()}.webm`;
-          a.click();
-          URL.revokeObjectURL(url);
-          setIsRecording(false);
-          addToast('Recording saved!');
+          a.href = url; a.download = `meeting-${roomId}-${Date.now()}.webm`;
+          a.click(); URL.revokeObjectURL(url);
+          setIsRecording(false); addToast('Recording saved!');
         };
-        mr.start(1000); // collect data every 1s
-        mediaRecorderRef.current = mr;
-        setIsRecording(true);
-        addToast('Recording started 🔴');
-      } catch (e) {
-        addToast('Recording not supported in this browser');
-      }
+        mr.start(1000); mediaRecorderRef.current = mr; setIsRecording(true); addToast('Recording started 🔴');
+      } catch { addToast('Recording not supported in this browser'); }
     }
   }, [isRecording, localStream, roomId, addToast]);
 
-  const togglePanel = (p) => setActivePanel(prev => prev === p ? null : p);
+  const togglePanel = (p) => {
+    setActivePanel(prev => prev === p ? null : p);
+    if (p === PANELS.chat) setUnreadChat(0);
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/room/${roomId}`).catch(() => { });
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLayoutChange = (newLayout) => {
+    setLayout(newLayout);
+    if (newLayout === LAYOUT.auto || newLayout === LAYOUT.tiled) {
+      setPinnedUser(null);
+    }
+  };
+
   const isHost = room?.host?._id === user?._id || room?.host === user?._id;
   const peerList = Object.entries(peers);
-  const panelTitle = { chat: 'Chat', participants: `People (${peerList.length + 1})`, whiteboard: 'Whiteboard', files: 'Shared Files' };
+  const isGridLayout = layout === LAYOUT.auto || layout === LAYOUT.tiled;
+
+  const panelTitle = {
+    chat: 'In-call messages',
+    participants: `People (${peerList.length + 1})`,
+    whiteboard: 'Whiteboard',
+    files: 'Shared Files',
+  };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-      <div className="text-center"><div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" /><p className="text-gray-500 text-sm">Joining…</p></div>
+    <div className="min-h-screen bg-[#0e0e16] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-gray-500 text-sm">Joining meeting…</p>
+      </div>
     </div>
   );
+
   if (error) return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
-      <div className="glass-card p-8 max-w-sm w-full text-center"><p className="text-red-400 mb-4 text-sm">{error}</p><button onClick={() => navigate('/dashboard')} className="btn-primary">Back</button></div>
+    <div className="min-h-screen bg-[#0e0e16] flex items-center justify-center p-4">
+      <div className="bg-[#141420] border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center">
+        <p className="text-red-400 mb-4 text-sm">{error}</p>
+        <button onClick={() => navigate('/dashboard')} className="btn-primary">Back to dashboard</button>
+      </div>
     </div>
   );
 
   return (
-    <div ref={containerRef} className="h-screen bg-[#0a0a0f] flex flex-col overflow-hidden select-none">
+    <div className="h-screen bg-[#0e0e16] flex flex-col overflow-hidden select-none">
 
       {/* ══ TOP BAR ══════════════════════════════════════════════════════════ */}
-      <header className="flex items-center justify-between px-5 py-3 flex-shrink-0 bg-[#0a0a0f]">
-        {/* Left — room info + participant count */}
+      <header className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 bg-[#0e0e16] border-b border-white/6">
+        {/* Left — room info */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
             <span className="text-sm font-bold text-white leading-tight">{room?.name || 'Meeting'}</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs text-gray-500 font-mono">{roomId}</span>
-              <button onClick={copyLink} className="text-gray-500 hover:text-gray-300 transition-colors" title="Copy link">
+              <span className="text-xs text-gray-600 font-mono">{roomId}</span>
+              <button onClick={copyLink} className="text-gray-600 hover:text-gray-400 transition-colors" title="Copy link">
                 {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>
           </div>
-          {/* Live participant count badge */}
-          <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 bg-white/6 border border-white/10 px-2.5 py-1 rounded-full">
             <Users className="w-3 h-3 text-gray-400" />
             <span className="text-xs text-gray-300 font-semibold tabular-nums">{peerList.length + 1}</span>
           </div>
         </div>
-        {/* Right — panels, layout, more + meeting timer */}
-        <div className="flex items-center gap-2">
-          {/* Meeting duration timer */}
-          <div className="hidden sm:flex flex-col items-center justify-center px-3 py-1 rounded-xl bg-white/6 border border-white/10 mr-1">
-            <span className="text-base font-bold text-white font-mono tracking-wide leading-tight">{duration}</span>
+
+        {/* Right — duration + panels + more */}
+        <div className="flex items-center gap-1.5">
+          <div className="hidden sm:flex items-center px-3 py-1.5 rounded-xl bg-white/5 border border-white/8">
+            <span className="text-sm font-bold text-white font-mono tracking-wide">{duration}</span>
           </div>
           <CtrlBtn onClick={() => togglePanel(PANELS.participants)} active={activePanel === PANELS.participants} title="People (P)">
             <Users className="w-5 h-5" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => setViewMode(v => v === VIEW.grid ? VIEW.speaker : VIEW.grid)} active={viewMode === VIEW.speaker} title="Toggle view (G)">
-            {viewMode === VIEW.grid ? <Tv className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
-          </CtrlBtn>
           <CtrlBtn onClick={() => togglePanel(PANELS.files)} active={activePanel === PANELS.files} title="Shared files">
             <FileText className="w-5 h-5" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => setShowSettings(true)} title="Settings" className="hidden sm:flex" id="settings-btn">
+          <CtrlBtn onClick={() => setShowSettings(true)} title="Settings">
             <Settings className="w-5 h-5" />
           </CtrlBtn>
           {/* More ⋯ */}
-          <div className="relative" ref={moreRef}>
+          <div ref={moreRef} className="relative">
             <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options">
               <MoreHorizontal className="w-5 h-5" />
             </CtrlBtn>
-            {showMore && (
-              <MoreMenu
-                onRecord={handleRecord}
-                onWhiteboard={() => togglePanel(PANELS.whiteboard)}
-                onFiles={() => togglePanel(PANELS.files)}
-                isScreenSharing={isScreenSharing}
-                onStopShare={handleScreenShare}
-                isHandRaised={isHandRaised}
-                onHandRaise={handleHandRaise}
-                onSettings={() => setShowSettings(true)}
-                onClose={() => setShowMore(false)}
-              />
-            )}
           </div>
         </div>
       </header>
@@ -791,24 +915,24 @@ export default function RoomPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Video area */}
         <div className="flex flex-1 overflow-hidden">
-          {viewMode === VIEW.grid ? (
+          {isGridLayout ? (
             <GridView peers={peers} localStream={localStream} screenStream={screenStream}
               isScreenSharing={isScreenSharing} audioEnabled={audioEnabled} videoEnabled={videoEnabled}
               peerStates={peerStates} screenSharingPeers={screenSharingPeers} raisedHands={raisedHands}
               isHandRaised={isHandRaised} user={user} room={room} onMute={handleMute}
-              setPinnedUser={setPinnedUser} setViewMode={setViewMode} />
+              setPinnedUser={setPinnedUser} setLayout={setLayout} />
           ) : (
             <SpeakerView peers={peers} localStream={localStream} screenStream={screenStream}
               isScreenSharing={isScreenSharing} audioEnabled={audioEnabled} videoEnabled={videoEnabled}
               peerStates={peerStates} screenSharingPeers={screenSharingPeers} raisedHands={raisedHands}
               isHandRaised={isHandRaised} pinnedUser={pinnedUser} setPinnedUser={setPinnedUser}
-              user={user} room={room} onMute={handleMute} hasPanel={activePanel !== null} />
+              user={user} room={room} onMute={handleMute} hasPanel={activePanel !== null} layout={layout} />
           )}
         </div>
 
-        {/* Side panel — slides in from right like Google Meet */}
+        {/* Side panel */}
         {activePanel && (
-          <aside className="w-80 border-l border-white/8 flex flex-col flex-shrink-0 bg-[#0f0f18] animate-slide-right">
+          <aside className="w-80 border-l border-white/8 flex flex-col flex-shrink-0 bg-[#12121c] animate-slide-right">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8 flex-shrink-0">
               <h2 className="text-sm font-bold text-white">{panelTitle[activePanel]}</h2>
               <button onClick={() => setActivePanel(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-400 hover:text-white transition-colors">
@@ -831,65 +955,93 @@ export default function RoomPage() {
       </div>
 
       {/* ══ BOTTOM BAR ════════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between py-4 px-6 flex-shrink-0 bg-[#0a0a0f]">
+      <footer className="flex items-center justify-between py-3 px-4 flex-shrink-0 bg-[#0e0e16] border-t border-white/6">
 
-        {/* Left — current clock time */}
-        <div className="hidden sm:flex flex-col gap-0 w-40 justify-center">
-          <span className="text-base font-bold text-white font-mono tracking-wide leading-tight">{clockTime}</span>
+        {/* Left — clock */}
+        <div className="hidden sm:flex flex-col w-32 justify-center">
+          <span className="text-sm font-bold text-white font-mono">{clockTime}</span>
+          {isRecording && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+              <span className="text-[10px] text-red-400 font-semibold">REC</span>
+            </div>
+          )}
         </div>
 
-        {/* Center group — media controls + chat + leave (contained, no overflow) */}
-        <div className="flex items-center gap-2 overflow-x-auto max-w-full flex-shrink min-w-0 px-1">
-          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'}>
+        {/* Center — main controls */}
+        <div className="flex items-center gap-2 overflow-x-auto max-w-full px-1">
+          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'} label={audioEnabled ? 'Mic on' : 'Muted'}>
             {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'}>
+          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'} label={videoEnabled ? 'Camera' : 'No cam'}>
             {videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={handleScreenShare} danger={isScreenSharing} title={isScreenSharing ? 'Stop sharing (S)' : 'Share screen (S)'}>
+          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop sharing (S)' : 'Share screen (S)'} label="Share">
             {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)">
+          <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)" label="Hand">
             <Hand className="w-5 h-5" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat} title="Chat (C)">
+          <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat} title="Chat (C)"
+            badge={activePanel !== PANELS.chat ? unreadChat : 0} label="Chat">
             <MessageSquare className="w-5 h-5" />
           </CtrlBtn>
 
-          {/* Separator */}
-          <div className="w-px h-6 bg-white/10 mx-2 hidden sm:block flex-shrink-0"></div>
+          {/* Layout picker button */}
+          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)" label="Layout">
+            <LayoutGrid className="w-5 h-5" />
+          </CtrlBtn>
 
-          <button
-            onClick={() => setShowLeave(true)}
-            className="flex items-center gap-2 px-6 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-all duration-200 shadow-lg flex-shrink-0"
-          >
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/10 mx-1 flex-shrink-0" />
+
+          {/* Leave */}
+          <button onClick={() => setShowLeave(true)}
+            className="flex items-center gap-2 px-5 h-12 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all shadow-lg shadow-red-600/20 flex-shrink-0">
             <PhoneOff className="w-4 h-4" />
-            <span>Leave</span>
+            <span className="hidden sm:block">Leave</span>
           </button>
         </div>
 
-        {/* Right — spacer to balance left */}
-        <div className="hidden sm:block w-40" />
+        {/* Right — spacer */}
+        <div className="hidden sm:block w-32" />
       </footer>
 
       {/* ══ OVERLAYS ══════════════════════════════════════════════════════════ */}
       <ToastList toasts={toasts} />
 
-      {showLeave && (
-        <LeaveModal
-          isHost={isHost}
-          onEnd={() => { setShowLeave(false); handleEndRoom(); }}
-          onLeave={() => { setShowLeave(false); navigate('/dashboard'); }}
-          onCancel={() => setShowLeave(false)}
+      {/* More menu - fixed above bottom bar */}
+      {showMore && (
+        <MoreMenu
+          onRecord={handleRecord}
+          isRecording={isRecording}
+          onWhiteboard={() => togglePanel(PANELS.whiteboard)}
+          onFiles={() => togglePanel(PANELS.files)}
+          isScreenSharing={isScreenSharing}
+          onStopShare={handleScreenShare}
+          isHandRaised={isHandRaised}
+          onHandRaise={handleHandRaise}
+          onSettings={() => setShowSettings(true)}
+          onClose={() => setShowMore(false)}
         />
       )}
 
-      {/* Recording indicator */}
-      {isRecording && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-red-600/90 backdrop-blur-sm text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg z-50 animate-fade-in">
-          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-          Recording
-        </div>
+      {/* Layout picker */}
+      {showLayoutPicker && (
+        <LayoutPicker current={layout} onChange={handleLayoutChange} onClose={() => setShowLayoutPicker(false)} />
+      )}
+
+      {showLeave && (
+        <LeaveModal isHost={isHost}
+          onEnd={() => { setShowLeave(false); handleEndRoom(); }}
+          onLeave={() => { setShowLeave(false); navigate('/dashboard'); }}
+          onCancel={() => setShowLeave(false)} />
+      )}
+
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} switchDevice={switchDevice}
+          currentVideoId={localStorage.getItem('syncspace_cam_id')}
+          currentAudioId={localStorage.getItem('syncspace_mic_id')} />
       )}
     </div>
   );

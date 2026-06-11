@@ -8,7 +8,7 @@
   }
 
   body {
-    @apply bg-dark-900 text-white font-sans antialiased;
+    @apply bg-[#0e0e16] text-white font-sans antialiased;
   }
 
   ::-webkit-scrollbar {
@@ -21,26 +21,23 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 99px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.18);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-600/20;
   }
 
   .btn-ghost {
     @apply text-gray-400 hover:text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all duration-200;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.07);
-    }
+    &:hover { background: rgba(255, 255, 255, 0.07); }
   }
 
   .btn-danger {
@@ -49,32 +46,29 @@
 
   .input-field {
     @apply w-full border text-white placeholder-gray-600 rounded-xl px-4 py-3 text-sm focus:outline-none transition-all duration-200;
-    background: #111120;
+    background: #141420;
     border-color: rgba(255, 255, 255, 0.1);
   }
 
   .input-field:focus {
     border-color: rgba(99, 102, 241, 0.5);
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
   }
 
   .glass-card {
     @apply border rounded-2xl shadow-xl;
-    background: #111120;
+    background: #141420;
     border-color: rgba(255, 255, 255, 0.1);
   }
 
   .icon-btn {
     @apply p-2 rounded-xl transition-all duration-200 flex items-center justify-center text-gray-400 hover:text-white;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.07);
-    }
+    &:hover { background: rgba(255, 255, 255, 0.07); }
   }
 
   .typing-dots {
     @apply flex items-center gap-1 px-3 py-2 rounded-2xl rounded-bl-none;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .typing-dot {
@@ -82,27 +76,16 @@
     animation: typingDot 1.4s ease-in-out infinite;
   }
 
-  .typing-dot:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-
-  .typing-dot:nth-child(3) {
-    animation-delay: 0.4s;
-  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
   .speaking-ring {
     box-shadow: 0 0 0 2.5px #22c55e, 0 0 16px 4px rgba(34, 197, 94, 0.3);
     animation: speakingGlow 1.5s ease-in-out infinite;
   }
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 3px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 99px;
@@ -110,139 +93,76 @@
 }
 
 @layer utilities {
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-  .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  .animate-slide-right {
-    animation: slideRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.18s ease both;
-  }
-
-  .animate-float-up {
-    animation: floatUp 2.5s ease forwards;
-  }
-
-  .animate-bounce-soft {
-    animation: bounceSoft 0.8s ease-in-out infinite;
-  }
-
-  .animate-ping-once {
-    animation: ping 0.6s cubic-bezier(0, 0, 0.2, 1) 1;
-  }
+  .animate-slide-up { animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-slide-right { animation: slideRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-slide-down { animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-fade-in { animation: fadeIn 0.18s ease both; }
+  .animate-float-up { animation: floatUp 2.5s ease forwards; }
+  .animate-bounce-soft { animation: bounceSoft 0.8s ease-in-out infinite; }
+  .animate-ping-once { animation: ping 0.6s cubic-bezier(0, 0, 0.2, 1) 1; }
+  .animate-scale-in { animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
 }
 
-/* ─── Keyframes ────────────────────────────────────────────────────────────── */
-
 @keyframes typingDot {
-
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
 }
 
 @keyframes speakingPulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
 
-  0%,
-  100% {
-    opacity: 0.8;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
+@keyframes speakingGlow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(74,222,128,0.6); }
+  50% { box-shadow: 0 0 0 5px rgba(74,222,128,0.9), 0 0 20px rgba(74,222,128,0.4); }
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+@keyframes slideDown {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes slideRight {
-  from {
-    transform: translateX(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-  to {
-    opacity: 1;
-  }
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 @keyframes floatUp {
-  0% {
-    transform: translate(-50%, 0) scale(1);
-    opacity: 1;
-  }
-
-  60% {
-    transform: translate(-50%, -80px) scale(1.2);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate(-50%, -140px) scale(0.8);
-    opacity: 0;
-  }
+  0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  60% { transform: translate(-50%, -80px) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -140px) scale(0.8); opacity: 0; }
 }
 
 @keyframes bounceSoft {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-4px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 @keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
 
-  75%,
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
+@keyframes reactionPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
 }
