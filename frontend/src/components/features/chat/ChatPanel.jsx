@@ -197,24 +197,22 @@ function MessageActions({ msg, userId, onReact, onReply, visible, onMore, showMo
   if (!visible) return null;
 
   return (
-    <div className="absolute right-0 -top-5 z-20 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-center gap-0.5 bg-[#1f2023] rounded-full px-2 py-1.5 shadow-2xl border border-white/10">
+    <div className="absolute right-2 -top-7 z-20 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-0.5 bg-[#1f2023] rounded-full px-1.5 py-1 shadow-2xl border border-white/10">
         {EMOJI_LIST.map(emoji => (
           <button key={emoji} type="button" onClick={() => onReact(msg._id, emoji)}
-            className="w-8 h-8 flex items-center justify-center text-xl hover:scale-125 transition-all rounded-full hover:bg-white/10">
+            className="w-7 h-7 flex items-center justify-center text-base hover:scale-125 transition-all rounded-full hover:bg-white/10">
             {emoji}
           </button>
         ))}
-        {/* Reply button */}
-        <div className="w-px h-5 bg-white/15 mx-0.5" />
+        <div className="w-px h-4 bg-white/15 mx-0.5" />
         <button type="button" onClick={() => onReply(msg)}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Reply">
-          <CornerUpLeft className="w-4 h-4" />
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Reply">
+          <CornerUpLeft className="w-3.5 h-3.5" />
         </button>
-        {/* + full emoji picker */}
         <div className="relative" ref={plusRef}>
           <button type="button" onClick={onMore}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors font-bold text-base" title="More reactions">
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors font-bold text-sm" title="More reactions">
             +
           </button>
           {showMore && (
@@ -578,80 +576,90 @@ export default function ChatPanel({ roomId }) {
 
           return (
             <div key={key}
-              className="group relative flex items-start gap-3 px-3 py-2.5 mx-2 mb-0.5 rounded-2xl bg-[#2d2f32] hover:bg-[#313437] transition-colors"
+              className="group relative px-3 pt-1.5 pb-0.5"
               onMouseEnter={() => !isPending && setHoveredMsgId(msg._id)}
               onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); if (!isPending) setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
             >
-              {/* Avatar */}
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5 select-none"
-                style={{ background: senderColor.bg, color: senderColor.text }}
-                title={senderName}>
-                {initials}
-              </div>
-
-              {/* Message content */}
-              <div className="flex-1 min-w-0">
-                {/* Name + time */}
-                <div className="flex items-baseline gap-2 mb-0.5">
-                  <span className="text-sm font-semibold leading-none"
-                    style={{ color: own ? '#8ab4f8' : senderColor.bg }}>
-                    {own ? 'You' : senderName}
-                  </span>
-                  <span className="text-[10px] text-[#9aa0a6] leading-none">
-                    {formatTime(msg.createdAt)}
-                    {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
-                  </span>
-                </div>
-
-                {/* Reply quote */}
-                {msg.replyTo && (
-                  <div className="mb-1 px-2 py-1 rounded-lg bg-white/6 border-l-2 border-[#8ab4f8]/60">
-                    <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
-                    <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
+              <div className={`flex items-end gap-2 ${own ? 'flex-row-reverse' : 'flex-row'}`}>
+                {/* Avatar — only for others */}
+                {!own ? (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mb-0.5 select-none"
+                    style={{ background: senderColor.bg, color: senderColor.text }} title={senderName}>
+                    {initials}
                   </div>
-                )}
+                ) : <div className="w-7 flex-shrink-0" />}
 
-                {/* Message text / file */}
-                {msg.type === 'file' ? (
-                  <div>
-                    {msg.content && (
-                      <p className="text-sm text-[#e8eaed] leading-relaxed whitespace-pre-wrap break-words mb-1">
-                        {msg.content}
-                      </p>
+                {/* Bubble column */}
+                <div className={`flex flex-col max-w-[78%] ${own ? 'items-end' : 'items-start'}`}>
+                  {/* Name + time */}
+                  <div className={`flex items-baseline gap-1.5 mb-0.5 px-0.5 ${own ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {!own && (
+                      <span className="text-[11px] font-semibold leading-none" style={{ color: senderColor.bg }}>
+                        {senderName}
+                      </span>
                     )}
-                    <FileCard file={msg.file} baseUrl={baseUrl} />
+                    <span className="text-[10px] text-[#9aa0a6] leading-none">
+                      {formatTime(msg.createdAt)}
+                      {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
+                    </span>
                   </div>
-                ) : (
-                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words select-text ${isPending ? 'text-[#9aa0a6]' : 'text-[#e8eaed]'}`}>
-                    {msg.content}
-                  </p>
-                )}
 
-                {/* Inline copy button — below message text */}
-                {!isPending && msg.type !== 'system' && (
-                  <div className="flex items-center justify-end mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button type="button"
-                      onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-[#9aa0a6] hover:text-white hover:bg-white/10 transition-all"
-                      title="Copy message">
-                      {copiedMsgId === msg._id
-                        ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
-                        : <><Copy className="w-3 h-3" /><span>Copy</span></>}
-                    </button>
+                  {/* Reply quote */}
+                  {msg.replyTo && (
+                    <div className={`mb-1 px-2 py-1 rounded-lg bg-white/6 border-l-2 border-[#8ab4f8]/60 w-full`}>
+                      <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
+                      <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
+                    </div>
+                  )}
+
+                  {/* Bubble */}
+                  <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words select-text
+                    ${own
+                      ? 'bg-[#1a73e8] text-white rounded-tr-sm'
+                      : 'bg-[#2d2f32] text-[#e8eaed] rounded-tl-sm'}
+                    ${isPending ? 'opacity-60' : ''}
+                    ${msg.type === 'file' ? 'p-0 bg-transparent' : ''}`}>
+                    {msg.type === 'file' ? (
+                      <div className={`px-3 py-2 rounded-2xl ${own ? 'bg-[#1a73e8]' : 'bg-[#2d2f32]'} ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
+                        {msg.content && (
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">
+                            {msg.content}
+                          </p>
+                        )}
+                        <FileCard file={msg.file} baseUrl={baseUrl} />
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
                   </div>
-                )}
 
-                {/* Reaction pills */}
-                <ReactionPills reactions={msg.reactions} userId={user?._id}
-                  onToggle={handleToggleReaction} messageId={msg._id} />
+                  {/* Inline copy button */}
+                  {!isPending && (
+                    <div className={`flex mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${own ? 'justify-end' : 'justify-start'}`}>
+                      <button type="button"
+                        onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] text-[#9aa0a6] hover:text-white hover:bg-white/10 transition-all"
+                        title="Copy">
+                        {copiedMsgId === msg._id
+                          ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+                          : <><Copy className="w-3 h-3" /><span>Copy</span></>}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Reaction pills */}
+                  <div className="ml-0">
+                    <ReactionPills reactions={msg.reactions} userId={user?._id}
+                      onToggle={handleToggleReaction} messageId={msg._id} />
+                  </div>
+                </div>
               </div>
 
-              {/* Hover emoji bar (desktop) */}
+              {/* Emoji bar — click or hover */}
               {!isPending && (
                 <MessageActions
                   msg={msg}
@@ -673,7 +681,7 @@ export default function ChatPanel({ roomId }) {
                     {EMOJI_LIST.map(emoji => (
                       <button key={emoji} type="button"
                         onClick={() => { handleToggleReaction(msg._id, emoji); setMobileMsgMenu(null); }}
-                        className="text-2xl hover:scale-125 transition-transform">
+                        className="text-xl hover:scale-125 transition-transform">
                         {emoji}
                       </button>
                     ))}
