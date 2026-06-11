@@ -29,7 +29,7 @@ export default function HomePage() {
   const [code, setCode] = useState('');
   const [slide, setSlide] = useState(0);
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -59,8 +59,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#202124] text-white font-sans flex flex-col">
 
       {/* ── Navbar ── */}
-      <nav className="flex items-center justify-between px-6 py-3 border-b border-white/8">
-        {/* Logo */}
+      <nav className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/8">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
           <div className="w-9 h-9 bg-[#4f46e5] rounded-xl flex items-center justify-center shadow-lg">
             <Video className="w-5 h-5 text-white" />
@@ -68,14 +67,13 @@ export default function HomePage() {
           <span className="text-lg font-semibold text-white tracking-tight">SyncSpace</span>
         </div>
 
-        {/* Right nav */}
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-[#9aa0a6] hidden md:block">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="text-sm text-[#9aa0a6] hidden lg:block">
             {fmt(time)} · {fmtDate(time)}
           </span>
           {isAuthenticated ? (
             <button onClick={() => navigate('/dashboard')}
-              className="text-sm font-medium text-white bg-[#4f46e5] hover:bg-[#4338ca] px-5 py-2 rounded-full transition-colors">
+              className="text-sm font-medium text-white bg-[#4f46e5] hover:bg-[#4338ca] px-4 sm:px-5 py-2 rounded-full transition-colors">
               Dashboard
             </button>
           ) : (
@@ -84,7 +82,7 @@ export default function HomePage() {
                 Log in
               </Link>
               <Link to="/register"
-                className="text-sm font-semibold text-[#202124] bg-white hover:bg-gray-100 px-5 py-2 rounded-full transition-colors shadow-sm">
+                className="text-sm font-semibold text-[#202124] bg-white hover:bg-gray-100 px-4 sm:px-5 py-2 rounded-full transition-colors shadow-sm">
                 Sign up
               </Link>
             </>
@@ -93,53 +91,48 @@ export default function HomePage() {
       </nav>
 
       {/* ── Hero ── */}
-      <main className="flex-1 flex flex-col items-center justify-start px-6 pt-20 pb-10">
+      <main className="flex-1 flex flex-col items-center justify-start px-4 sm:px-6 pt-12 sm:pt-20 pb-10">
         <div className="w-full max-w-2xl text-center">
-          {/* Headline */}
-          <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-5">
-            Premium video meetings.<br />Now free for everyone.
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-4 sm:mb-5">
+            Premium video meetings.<br className="hidden sm:block" />{' '}
+            <span className="sm:hidden"> </span>Now free for everyone.
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-lg text-[#9aa0a6] max-w-lg mx-auto leading-relaxed mb-10">
+          <p className="text-base sm:text-lg text-[#9aa0a6] max-w-lg mx-auto leading-relaxed mb-8 sm:mb-10 px-2">
             Built for seamless collaboration. Secure, enterprise-grade video conferencing that feels lightweight.
           </p>
 
           {/* Action row */}
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            {/* New meeting button */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button onClick={handleNew}
-              className="flex items-center gap-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-base px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[.98]">
-              <Video className="w-5 h-5" />
+              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-base px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[.98]">
+              <Video className="w-5 h-5 flex-shrink-0" />
               New meeting
             </button>
 
-            {/* Code input */}
-            <form onSubmit={handleJoin} className="flex items-center gap-0">
-              <div className="flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-xl px-4 gap-3 transition-colors focus-within:border-[#8ab4f8]">
+            <form onSubmit={handleJoin} className="w-full sm:w-auto flex items-center gap-0">
+              <div className="w-full sm:w-auto flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-xl px-4 gap-3 transition-colors focus-within:border-[#8ab4f8]">
                 <Keyboard className="w-5 h-5 text-[#9aa0a6] flex-shrink-0" />
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Enter a code or link"
-                  className="bg-transparent text-white text-base py-3 w-56 focus:outline-none placeholder-[#9aa0a6]"
+                  className="bg-transparent text-white text-base py-3 w-full sm:w-48 md:w-56 focus:outline-none placeholder-[#9aa0a6]"
                 />
-                {code.trim() && (
+                {code.trim() ? (
                   <button type="submit"
-                    className="text-sm font-semibold text-[#8ab4f8] hover:text-white pr-1 transition-colors">
+                    className="text-sm font-semibold text-[#8ab4f8] hover:text-white pr-1 transition-colors whitespace-nowrap">
                     Join
                   </button>
-                )}
-                {!code.trim() && (
+                ) : (
                   <span className="text-sm text-[#9aa0a6] pr-1">Join</span>
                 )}
               </div>
             </form>
           </div>
 
-          {/* Divider + learn more */}
-          <div className="mt-12 mb-8 border-t border-[#3c4043]" />
+          <div className="mt-10 sm:mt-12 mb-6 sm:mb-8 border-t border-[#3c4043]" />
           <p className="text-sm text-[#9aa0a6]">
             <span className="text-[#8ab4f8] font-medium cursor-pointer hover:underline">Learn more</span>
             {' '}about SyncSpace for your enterprise.
@@ -147,16 +140,14 @@ export default function HomePage() {
         </div>
 
         {/* ── Feature card carousel ── */}
-        <div className="w-full max-w-md mt-10">
+        <div className="w-full max-w-sm sm:max-w-md mt-8 sm:mt-10">
           <div className="relative overflow-hidden rounded-3xl"
             style={{ background: 'linear-gradient(145deg, #303134 0%, #2a2c31 60%, #2d2f3a 100%)' }}>
-            {/* Slide content */}
-            <div className="px-12 py-14 flex flex-col items-center text-center min-h-[280px] justify-center">
-              {/* Icon circle */}
-              <div className="w-20 h-20 bg-[#1a1a1a] rounded-full flex items-center justify-center mb-8 shadow-2xl">
+            <div className="px-8 sm:px-12 py-12 sm:py-14 flex flex-col items-center text-center min-h-[260px] sm:min-h-[280px] justify-center">
+              <div className="w-20 h-20 bg-[#1a1a1a] rounded-full flex items-center justify-center mb-6 sm:mb-8 shadow-2xl">
                 {SLIDES[slide].icon}
               </div>
-              <h2 className="text-xl font-bold text-white mb-3 leading-snug">
+              <h2 className="text-lg sm:text-xl font-bold text-white mb-3 leading-snug">
                 {SLIDES[slide].title}
               </h2>
               <p className="text-sm text-[#9aa0a6] leading-relaxed max-w-xs">
@@ -164,7 +155,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Dot indicators */}
             <div className="flex items-center justify-center gap-2 pb-6">
               {SLIDES.map((_, i) => (
                 <button key={i} onClick={() => setSlide(i)}

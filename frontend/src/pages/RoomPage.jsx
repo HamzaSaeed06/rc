@@ -95,6 +95,54 @@ function getGridLayout(n) {
   return { cols: 4, rows: Math.ceil(n / 4) };
 }
 
+// ─── Notification Sounds (Web Audio API) ──────────────────────────────────────
+function useNotificationSounds() {
+  const ctxRef = useRef(null);
+
+  const getCtx = () => {
+    if (!ctxRef.current || ctxRef.current.state === 'closed') {
+      ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
+    return ctxRef.current;
+  };
+
+  const playTone = (frequency, duration, gainVal, type = 'sine', startTime, ctx) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, startTime);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+  };
+
+  const playJoinSound = useCallback(() => {
+    try {
+      const ctx = getCtx();
+      const t = ctx.currentTime;
+      playTone(880, 0.15, 0.18, 'sine', t, ctx);
+      playTone(1109, 0.22, 0.14, 'sine', t + 0.12, ctx);
+    } catch { }
+  }, []);
+
+  const playHandRaiseSound = useCallback(() => {
+    try {
+      const ctx = getCtx();
+      const t = ctx.currentTime;
+      playTone(660, 0.12, 0.16, 'sine', t, ctx);
+      playTone(880, 0.12, 0.14, 'sine', t + 0.1, ctx);
+      playTone(1046, 0.20, 0.12, 'sine', t + 0.2, ctx);
+    } catch { }
+  }, []);
+
+  return { playJoinSound, playHandRaiseSound };
+}
+
 // ─── Toast ─────────────────────────────────────────────────────────────────────
 function useToasts() {
   const [toasts, setToasts] = useState([]);
@@ -633,6 +681,11 @@ export default function RoomPage() {
   const [unreadChat, setUnreadChat] = useState(0);
 
   const { toasts, addToast } = useToasts();
+  const { playJoinSound, playHandRaiseSound } = useNotificationSounds();
+  const soundJoinRef = useRef(playJoinSound);
+  const soundHandRef = useRef(playHandRaiseSound);
+  useEffect(() => { soundJoinRef.current = playJoinSound; }, [playJoinSound]);
+  useEffect(() => { soundHandRef.current = playHandRaiseSound; }, [playHandRaiseSound]);
   const audioRef = useRef(audioEnabled);
   const moreRef = useRef(null);
 
@@ -733,7 +786,7 @@ export default function RoomPage() {
         if (sid !== socket.id) addPeer(sid, u, stream);
       });
     });
-    socket.on('room:user-joined', ({ name }) => addToast(`${name} joined`, 'join'));
+    socket.on('room:user-joined', ({ name }) => { soundJoinRef.current?.(); addToast(`${name} joined`, 'join'); });
     socket.on('room:user-left', ({ socketId, name }) => {
       addToast(`${name || 'Participant'} left`, 'leave');
       removePeer(socketId);
@@ -751,7 +804,7 @@ export default function RoomPage() {
     socket.on('room:ended', () => { addToast('Meeting ended by host', 'leave'); setTimeout(() => navigate('/dashboard'), 1500); });
     socket.on('room:user-hand-raised', ({ socketId, name, isRaised }) => {
       setRaisedHands(p => ({ ...p, [socketId]: isRaised }));
-      if (isRaised) addToast(`${name} raised their hand ✋`);
+      if (isRaised) { soundHandRef.current?.(); addToast(`${name} raised their hand ✋`); }
     });
     socket.on('screen:started', ({ socketId, name }) => {
       setScreenSharingPeers(p => { const n = new Set(p); n.add(socketId); return n; });
@@ -930,35 +983,39 @@ export default function RoomPage() {
           )}
         </div>
 
-        {/* Side panel */}
+        {/* Side panel — overlay on mobile, inline on desktop */}
         {activePanel && (
-          <aside className="w-80 border-l border-white/8 flex flex-col flex-shrink-0 bg-[#282a2d] animate-slide-right">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8 flex-shrink-0">
-              <h2 className="text-sm font-bold text-white">{panelTitle[activePanel]}</h2>
-              <button onClick={() => setActivePanel(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-400 hover:text-white transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {activePanel === PANELS.chat && <ChatPanel roomId={roomId} />}
-              {activePanel === PANELS.whiteboard && <Whiteboard roomId={roomId} />}
-              {activePanel === PANELS.participants && (
-                <ParticipantsPanel user={user} room={room} peers={peers} peerStates={peerStates}
-                  raisedHands={raisedHands} isHandRaised={isHandRaised} audioEnabled={audioEnabled}
-                  videoEnabled={videoEnabled} onMute={handleMute}
-                  onMakeHost={(uid) => getSocket()?.emit('room:change-host', { roomId, newHostUserId: uid })} />
-              )}
-              {activePanel === PANELS.files && <FilesPanel roomId={roomId} />}
-            </div>
-          </aside>
+          <>
+            {/* Mobile overlay backdrop */}
+            <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setActivePanel(null)} />
+            <aside className="fixed right-0 top-0 bottom-0 w-full max-w-xs sm:relative sm:w-80 sm:max-w-none border-l border-white/8 flex flex-col flex-shrink-0 bg-[#282a2d] animate-slide-right z-50 sm:z-auto">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8 flex-shrink-0">
+                <h2 className="text-sm font-bold text-white">{panelTitle[activePanel]}</h2>
+                <button onClick={() => setActivePanel(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-400 hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {activePanel === PANELS.chat && <ChatPanel roomId={roomId} />}
+                {activePanel === PANELS.whiteboard && <Whiteboard roomId={roomId} />}
+                {activePanel === PANELS.participants && (
+                  <ParticipantsPanel user={user} room={room} peers={peers} peerStates={peerStates}
+                    raisedHands={raisedHands} isHandRaised={isHandRaised} audioEnabled={audioEnabled}
+                    videoEnabled={videoEnabled} onMute={handleMute}
+                    onMakeHost={(uid) => getSocket()?.emit('room:change-host', { roomId, newHostUserId: uid })} />
+                )}
+                {activePanel === PANELS.files && <FilesPanel roomId={roomId} />}
+              </div>
+            </aside>
+          </>
         )}
       </div>
 
       {/* ══ BOTTOM BAR ════════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between py-3 px-4 flex-shrink-0 bg-[#202124] border-t border-white/6">
+      <footer className="flex items-center justify-between py-2 sm:py-3 px-2 sm:px-4 flex-shrink-0 bg-[#202124] border-t border-white/6 gap-1">
 
         {/* Left — clock */}
-        <div className="hidden sm:flex flex-col w-32 justify-center">
+        <div className="hidden md:flex flex-col w-28 justify-center flex-shrink-0">
           <span className="text-sm font-bold text-white font-mono">{clockTime}</span>
           {isRecording && (
             <div className="flex items-center gap-1 mt-0.5">
@@ -969,42 +1026,42 @@ export default function RoomPage() {
         </div>
 
         {/* Center — main controls */}
-        <div className="flex items-center gap-2 overflow-x-auto max-w-full px-1">
-          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'} label={audioEnabled ? 'Mic on' : 'Muted'}>
-            {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-center overflow-x-auto scrollbar-none px-1 py-0.5">
+          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'} label={audioEnabled ? 'Mic' : 'Muted'}>
+            {audioEnabled ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'} label={videoEnabled ? 'Camera' : 'No cam'}>
-            {videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'} label={videoEnabled ? 'Cam' : 'No cam'}>
+            {videoEnabled ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
           </CtrlBtn>
           <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop sharing (S)' : 'Share screen (S)'} label="Share">
-            {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+            {isScreenSharing ? <MonitorOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Monitor className="w-4 h-4 sm:w-5 sm:h-5" />}
           </CtrlBtn>
           <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)" label="Hand">
-            <Hand className="w-5 h-5" />
+            <Hand className="w-4 h-4 sm:w-5 sm:h-5" />
           </CtrlBtn>
           <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat} title="Chat (C)"
             badge={activePanel !== PANELS.chat ? unreadChat : 0} label="Chat">
-            <MessageSquare className="w-5 h-5" />
+            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
           </CtrlBtn>
 
           {/* Layout picker button */}
           <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)" label="Layout">
-            <LayoutGrid className="w-5 h-5" />
+            <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
           </CtrlBtn>
 
           {/* Separator */}
-          <div className="w-px h-6 bg-white/10 mx-1 flex-shrink-0" />
+          <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1 flex-shrink-0" />
 
           {/* Leave */}
           <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-2 px-5 h-12 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all shadow-lg shadow-red-600/20 flex-shrink-0">
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 h-10 sm:h-12 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all shadow-lg shadow-red-600/20 flex-shrink-0">
             <PhoneOff className="w-4 h-4" />
             <span className="hidden sm:block">Leave</span>
           </button>
         </div>
 
         {/* Right — spacer */}
-        <div className="hidden sm:block w-32" />
+        <div className="hidden md:block w-28 flex-shrink-0" />
       </footer>
 
       {/* ══ OVERLAYS ══════════════════════════════════════════════════════════ */}

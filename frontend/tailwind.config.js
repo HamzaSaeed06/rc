@@ -13,14 +13,13 @@ export default {
           600: '#4f46e5',
           700: '#4338ca',
         },
-        // Google Meet-inspired dark palette
         dark: {
-          900: '#202124',   // page bg
+          900: '#202124',
           850: '#28292d',
-          800: '#303134',   // card bg
-          700: '#3c4043',   // border / hover bg
-          600: '#5f6368',   // muted border
-          500: '#80868b',   // placeholder
+          800: '#303134',
+          700: '#3c4043',
+          600: '#5f6368',
+          500: '#80868b',
         },
         meet: {
           blue:  '#8ab4f8',
@@ -29,7 +28,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
       },
       animation: {
         'fade-in':      'fadeIn  0.18s ease both',
