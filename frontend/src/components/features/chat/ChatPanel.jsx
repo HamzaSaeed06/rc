@@ -578,13 +578,13 @@ export default function ChatPanel({ roomId }) {
           return own ? (
             /* ── MY MESSAGE (right) ── */
             <div key={key}
-              className="group relative flex justify-end px-3 pt-1.5 pb-1"
+              className="group relative flex justify-end items-end gap-2 px-3 pt-1.5 pb-1"
               onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
             >
-              <div className="flex flex-col items-end max-w-[78%]">
+              <div className="flex flex-col items-end max-w-[72%]">
                 {/* Time */}
                 <span className="text-[10px] text-[#9aa0a6] mb-1 pr-1">
                   {formatTime(msg.createdAt)}
@@ -653,6 +653,12 @@ export default function ChatPanel({ roomId }) {
                   onCloseMore={() => setMoreEmojiMsgId(null)}
                 />
               )}
+
+              {/* Own avatar — right side */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mb-0.5 select-none"
+                style={{ background: senderColor.bg, color: senderColor.text }} title="You">
+                {initials}
+              </div>
             </div>
           ) : (
             /* ── OTHERS' MESSAGE (left) ── */
