@@ -540,18 +540,7 @@ export default function ChatPanel({ roomId }) {
                   </span>
                 )}
 
-                {/* Reaction hover bar */}
-                {!isPending && (
-                  <ReactionBar
-                    messageId={msg._id}
-                    reactions={msg.reactions}
-                    userId={user?._id}
-                    onToggle={handleToggleReaction}
-                    own={own}
-                  />
-                )}
-
-                {/* Bubble */}
+                {/* Bubble (relative so ReactionBar positions correctly above it) */}
                 <div
                   className={`relative px-3 py-2 text-sm shadow-sm
                     ${own
@@ -562,6 +551,16 @@ export default function ChatPanel({ roomId }) {
                     ? { background: isPending ? '#1a4a3a' : '#075E54', color: '#e9fffd' }
                     : {}}
                 >
+                  {/* Reaction hover bar — above bubble, anchored to this relative div */}
+                  {!isPending && (
+                    <ReactionBar
+                      messageId={msg._id}
+                      reactions={msg.reactions}
+                      userId={user?._id}
+                      onToggle={handleToggleReaction}
+                      own={own}
+                    />
+                  )}
                   {msg.type === 'file' ? (
                     <div className="flex flex-col gap-1.5">
                       <FileBubble file={msg.file} own={own} baseUrl={baseUrl} />
@@ -588,7 +587,7 @@ export default function ChatPanel({ roomId }) {
                       />
                     )}
                   </div>
-                </div>
+                  </div>
 
                 {/* Reaction pills */}
                 <ReactionPills

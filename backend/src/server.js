@@ -23,7 +23,7 @@ const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : true,
     methods: ['GET', 'POST'],
     credentials: true,
   },

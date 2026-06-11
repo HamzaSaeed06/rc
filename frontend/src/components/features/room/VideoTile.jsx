@@ -61,16 +61,11 @@ export default function VideoTile({
 
   // ── Speaking ring style ──────────────────────────────────────────────────────
   const isSpeakingActive = isSpeaking && !isMuted && !showMicOff;
-  const ringStyle = isSpeakingActive
-    ? { boxShadow: `0 0 0 3px #4ade80, 0 0 18px rgba(74,222,128,0.5)` }
-    : isPinned
-    ? { boxShadow: `0 0 0 3px ${color.bg}` }
-    : {};
 
   return (
     <div
-      className="relative bg-dark-850 rounded-xl overflow-hidden w-full h-full flex items-center justify-center group transition-all duration-300"
-      style={ringStyle}
+      className={`relative bg-dark-850 rounded-xl overflow-hidden w-full h-full flex items-center justify-center group transition-all duration-300 ${isSpeakingActive ? 'speaking-ring' : ''}`}
+      style={!isSpeakingActive && isPinned ? { boxShadow: `0 0 0 3px ${color.bg}` } : {}}
     >
       {/* ── Video element (always mounted) ── */}
       <video

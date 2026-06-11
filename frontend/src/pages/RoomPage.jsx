@@ -511,11 +511,28 @@ export default function RoomPage() {
   const [floatingReaction, setFloatingReaction] = useState(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
 
+  const [clockTime, setClockTime] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  );
+  const [meetingStart] = useState(() => Date.now());
+  const [duration, setDuration] = useState('0:00');
+
   const { toasts, addToast } = useToasts();
   const audioEnabledRef = useRef(audioEnabled);
   const reactionPickerRef = useRef(null);
 
   useEffect(() => { audioEnabledRef.current = audioEnabled; }, [audioEnabled]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setClockTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      const elapsed = Math.floor((Date.now() - meetingStart) / 1000);
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
+      setDuration(`${m}:${s.toString().padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [meetingStart]);
 
   // Close reaction picker on outside click
   useEffect(() => {
@@ -973,11 +990,10 @@ export default function RoomPage() {
           </button>
         </div>
 
-        {/* Right: Clock */}
-        <div className="absolute right-6 hidden sm:flex items-center gap-1.5 text-xs text-gray-500 font-medium select-none">
-          <span id="meeting-clock">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
+        {/* Right: Clock + Duration */}
+        <div className="absolute right-6 hidden sm:flex flex-col items-end text-xs text-gray-500 font-medium select-none">
+          <span>{clockTime}</span>
+          <span className="text-[10px] text-gray-600">{duration}</span>
         </div>
       </footer>
 

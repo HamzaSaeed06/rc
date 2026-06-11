@@ -45,7 +45,10 @@ const generalLimiter = rateLimit({
 
 // ─── General Middleware ────────────────────────────────────────────────────────
 app.use(cookieParser());
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+const corsOrigin = process.env.NODE_ENV === 'production'
+  ? process.env.CLIENT_URL
+  : true;
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(compression());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));

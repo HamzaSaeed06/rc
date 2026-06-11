@@ -76,5 +76,9 @@ roomSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+roomSchema.index({ roomId: 1, isActive: 1 });
+roomSchema.index({ host: 1 });
+roomSchema.index({ isActive: 1, createdAt: 1 });
+
 const Room = mongoose.model('Room', roomSchema);
 module.exports = Room;
