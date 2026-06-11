@@ -46,28 +46,25 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#202124] flex flex-col">
-      {/* Nav */}
-      <nav className="flex items-center px-6 py-3 border-b border-white/8">
+      <nav className="flex items-center px-6 py-3.5 border-b border-white/8">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-9 h-9 bg-[#4f46e5] rounded-xl flex items-center justify-center shadow-lg">
-            <Video className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-[#4f46e5] rounded-lg flex items-center justify-center">
+            <Video className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-semibold text-white">SyncSpace</span>
+          <span className="text-base font-semibold text-white">SyncSpace</span>
         </div>
       </nav>
 
-      {/* Form */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Sign in</h1>
+          <div className="text-center mb-7">
+            <h1 className="text-xl font-semibold text-white mb-1.5">Sign in</h1>
             <p className="text-sm text-[#9aa0a6]">to continue to SyncSpace</p>
           </div>
 
-          <div className="bg-[#303134] border border-[#5f6368]/40 rounded-2xl p-7 shadow-2xl">
-            {/* Google */}
+          <div className="bg-[#303134] border border-[#5f6368]/40 rounded-xl p-6">
             <button type="button" onClick={handleGoogle} disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-[#202124] font-semibold text-sm px-4 py-2.5 rounded-xl border border-gray-200 transition-all mb-5 disabled:opacity-60 shadow-sm">
+              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-[#202124] font-medium text-sm px-4 py-2.5 rounded-lg border border-gray-200 transition-all mb-5 disabled:opacity-60">
               {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
               Continue with Google
             </button>
@@ -79,7 +76,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg px-4 py-3 mb-4">
                 {error}
               </div>
             )}
@@ -89,19 +86,19 @@ export default function LoginPage() {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6] pointer-events-none" />
                 <input type="email" name="email" value={form.email} onChange={handleChange}
                   placeholder="Email address"
-                  className="w-full bg-[#202124] border border-[#5f6368] hover:border-[#8ab4f8] focus:border-[#8ab4f8] text-white placeholder-[#9aa0a6] rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none transition-colors"
+                  className="w-full bg-[#202124] border border-[#5f6368] hover:border-[#8ab4f8] focus:border-[#8ab4f8] text-white placeholder-[#9aa0a6] rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors"
                   required autoComplete="email" />
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6] pointer-events-none" />
                 <input type="password" name="password" value={form.password} onChange={handleChange}
                   placeholder="Password"
-                  className="w-full bg-[#202124] border border-[#5f6368] hover:border-[#8ab4f8] focus:border-[#8ab4f8] text-white placeholder-[#9aa0a6] rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none transition-colors"
+                  className="w-full bg-[#202124] border border-[#5f6368] hover:border-[#8ab4f8] focus:border-[#8ab4f8] text-white placeholder-[#9aa0a6] rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors"
                   required autoComplete="current-password" />
               </div>
 
               <button type="submit" disabled={loading}
-                className="w-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-1">
+                className="w-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 mt-1">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? 'Signing in…' : 'Sign In'}
               </button>

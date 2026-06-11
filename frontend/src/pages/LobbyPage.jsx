@@ -248,7 +248,7 @@ export default function LobbyPage() {
 
               {/* Join button */}
               <button onClick={handleJoin} disabled={joining}
-                className="w-full py-3 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-60 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                className="w-full py-2.5 rounded-lg bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-60 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2">
                 {joining ? <><Loader2 className="w-4 h-4 animate-spin" /> Joining…</> : 'Join now'}
               </button>
             </div>

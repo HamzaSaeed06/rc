@@ -21,17 +21,17 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply bg-[#4f46e5] hover:bg-[#4338ca] text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-ghost {
-    @apply text-[#9aa0a6] hover:text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-colors duration-200 hover:bg-[#3c4043];
+    @apply text-[#9aa0a6] hover:text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors duration-200 hover:bg-[#3c4043];
   }
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors duration-200;
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors duration-200;
   }
 
   .input-field {
-    @apply w-full border text-white placeholder-[#9aa0a6] rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors duration-200;
+    @apply w-full border text-white placeholder-[#9aa0a6] rounded-lg px-4 py-2.5 text-sm focus:outline-none transition-colors duration-200;
     background: #202124;
     border-color: #5f6368;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
@@ -40,13 +40,13 @@
   .input-field:focus { border-color: #8ab4f8; }
 
   .glass-card {
-    @apply border rounded-2xl shadow-xl;
+    @apply border rounded-xl shadow-xl;
     background: #303134;
     border-color: rgba(95,99,104,0.4);
   }
 
   .icon-btn {
-    @apply p-2 rounded-xl transition-colors duration-200 flex items-center justify-center text-[#9aa0a6] hover:text-white hover:bg-[#3c4043];
+    @apply p-2 rounded-lg transition-colors duration-200 flex items-center justify-center text-[#9aa0a6] hover:text-white hover:bg-[#3c4043];
   }
 
   .typing-dots {

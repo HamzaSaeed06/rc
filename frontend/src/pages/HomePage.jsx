@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Video, Keyboard } from 'lucide-react';
+import { Video, Keyboard, Shield, Users, Zap, Github, Twitter } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 
 const SLIDES = [
   {
-    icon: <Video className="w-10 h-10 text-white" />,
+    icon: <Video className="w-9 h-9 text-white" />,
     title: 'Get a link that you can share',
     desc: (
       <>
@@ -14,15 +14,21 @@ const SLIDES = [
     ),
   },
   {
-    icon: <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+    icon: <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
     title: 'Invite people you want to meet',
     desc: 'Share the meeting code or link — they can join directly from any browser.',
   },
   {
-    icon: <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+    icon: <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
     title: 'Your meeting is safe',
     desc: 'No one can join a meeting unless invited or admitted by the host.',
   },
+];
+
+const FEATURES = [
+  { icon: <Shield className="w-5 h-5 text-[#8ab4f8]" />, title: 'End-to-end encrypted', desc: 'All messages and calls are encrypted in transit.' },
+  { icon: <Users className="w-5 h-5 text-[#8ab4f8]" />, title: 'Up to 20 participants', desc: 'Host large meetings with no time limit.' },
+  { icon: <Zap className="w-5 h-5 text-[#8ab4f8]" />, title: 'No downloads needed', desc: 'Works directly in any modern browser.' },
 ];
 
 export default function HomePage() {
@@ -59,12 +65,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#202124] text-white font-sans flex flex-col">
 
       {/* ── Navbar ── */}
-      <nav className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/8">
+      <nav className="flex items-center justify-between px-4 sm:px-8 py-3.5 border-b border-white/8">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-9 h-9 bg-[#4f46e5] rounded-xl flex items-center justify-center shadow-lg">
-            <Video className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-[#4f46e5] rounded-lg flex items-center justify-center">
+            <Video className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-semibold text-white tracking-tight">SyncSpace</span>
+          <span className="text-base font-semibold text-white tracking-tight">SyncSpace</span>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
@@ -73,16 +79,16 @@ export default function HomePage() {
           </span>
           {isAuthenticated ? (
             <button onClick={() => navigate('/dashboard')}
-              className="text-sm font-medium text-white bg-[#4f46e5] hover:bg-[#4338ca] px-4 sm:px-5 py-2 rounded-full transition-colors">
+              className="text-sm font-medium text-white bg-[#4f46e5] hover:bg-[#4338ca] px-4 py-2 rounded-lg transition-colors">
               Dashboard
             </button>
           ) : (
             <>
-              <Link to="/login" className="text-sm font-medium text-[#8ab4f8] hover:text-white transition-colors px-2">
+              <Link to="/login" className="text-sm font-medium text-[#8ab4f8] hover:text-white transition-colors px-2 py-2">
                 Log in
               </Link>
               <Link to="/register"
-                className="text-sm font-semibold text-[#202124] bg-white hover:bg-gray-100 px-4 sm:px-5 py-2 rounded-full transition-colors shadow-sm">
+                className="text-sm font-medium text-[#202124] bg-white hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors">
                 Sign up
               </Link>
             </>
@@ -91,48 +97,48 @@ export default function HomePage() {
       </nav>
 
       {/* ── Hero ── */}
-      <main className="flex-1 flex flex-col items-center justify-start px-4 sm:px-6 pt-12 sm:pt-20 pb-10">
+      <main className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-14 sm:pt-20 pb-12">
         <div className="w-full max-w-2xl text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-4 sm:mb-5">
+
+          <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-semibold text-white leading-tight tracking-tight mb-4 sm:mb-5">
             Premium video meetings.<br className="hidden sm:block" />{' '}
             <span className="sm:hidden"> </span>Now free for everyone.
           </h1>
 
-          <p className="text-base sm:text-lg text-[#9aa0a6] max-w-lg mx-auto leading-relaxed mb-8 sm:mb-10 px-2">
+          <p className="text-base text-[#9aa0a6] max-w-lg mx-auto leading-relaxed mb-8 sm:mb-10">
             Built for seamless collaboration. Secure, enterprise-grade video conferencing that feels lightweight.
           </p>
 
           {/* Action row */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+            {/* New meeting button */}
             <button onClick={handleNew}
-              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-base px-6 py-3 rounded-xl transition-all active:scale-[.98]">
-              <Video className="w-5 h-5 flex-shrink-0" />
+              className="flex items-center justify-center gap-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors">
+              <Video className="w-4 h-4 flex-shrink-0" />
               New meeting
             </button>
 
-            <form onSubmit={handleJoin} className="w-full sm:w-auto flex items-center gap-0">
-              <div className="w-full sm:w-auto flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-xl px-4 gap-3 transition-colors focus-within:border-[#8ab4f8]">
-                <Keyboard className="w-5 h-5 text-[#9aa0a6] flex-shrink-0" />
+            {/* Code input + Join button side by side */}
+            <form onSubmit={handleJoin} className="flex items-center gap-2">
+              <div className="flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-lg px-3 gap-2 transition-colors focus-within:border-[#8ab4f8] flex-1 sm:flex-none">
+                <Keyboard className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Enter a code or link"
-                  className="bg-transparent text-white text-base py-3 w-full sm:w-48 md:w-56 focus:outline-none placeholder-[#9aa0a6]"
+                  className="bg-transparent text-white text-sm py-2.5 w-full sm:w-44 md:w-52 focus:outline-none placeholder-[#9aa0a6]"
                 />
-                {code.trim() ? (
-                  <button type="submit"
-                    className="text-sm font-semibold text-[#8ab4f8] hover:text-white pr-1 transition-colors whitespace-nowrap">
-                    Join
-                  </button>
-                ) : (
-                  <span className="text-sm text-[#9aa0a6] pr-1">Join</span>
-                )}
               </div>
+              <button type="submit"
+                disabled={!code.trim()}
+                className="px-4 py-2.5 text-sm font-medium rounded-lg border border-[#5f6368] text-[#e8eaed] hover:border-[#8ab4f8] hover:text-white disabled:opacity-40 disabled:cursor-default transition-colors whitespace-nowrap flex-shrink-0">
+                Join
+              </button>
             </form>
           </div>
 
-          <div className="mt-10 sm:mt-12 mb-6 sm:mb-8 border-t border-[#3c4043]" />
+          <div className="mt-10 sm:mt-12 mb-6 border-t border-[#3c4043]" />
           <p className="text-sm text-[#9aa0a6]">
             <span className="text-[#8ab4f8] font-medium cursor-pointer hover:underline">Learn more</span>
             {' '}about SyncSpace for your enterprise.
@@ -141,29 +147,73 @@ export default function HomePage() {
 
         {/* ── Feature card carousel ── */}
         <div className="w-full max-w-sm sm:max-w-md mt-8 sm:mt-10">
-          <div className="relative overflow-hidden rounded-3xl"
-            style={{ background: 'linear-gradient(145deg, #303134 0%, #2a2c31 60%, #2d2f3a 100%)' }}>
-            <div className="px-8 sm:px-12 py-12 sm:py-14 flex flex-col items-center text-center min-h-[260px] sm:min-h-[280px] justify-center">
-              <div className="w-20 h-20 bg-[#1a1a1a] rounded-full flex items-center justify-center mb-6 sm:mb-8 shadow-2xl">
+          <div className="relative overflow-hidden rounded-2xl bg-[#303134]">
+            <div className="px-8 sm:px-12 py-10 sm:py-12 flex flex-col items-center text-center min-h-[240px] sm:min-h-[260px] justify-center">
+              <div className="w-16 h-16 bg-[#202124] rounded-xl flex items-center justify-center mb-6 shadow-lg">
                 {SLIDES[slide].icon}
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-white mb-3 leading-snug">
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-2.5 leading-snug">
                 {SLIDES[slide].title}
               </h2>
               <p className="text-sm text-[#9aa0a6] leading-relaxed max-w-xs">
                 {SLIDES[slide].desc}
               </p>
             </div>
-
-            <div className="flex items-center justify-center gap-2 pb-6">
+            <div className="flex items-center justify-center gap-2 pb-5">
               {SLIDES.map((_, i) => (
                 <button key={i} onClick={() => setSlide(i)}
-                  className={`rounded-full transition-all ${i === slide ? 'w-5 h-2 bg-[#8ab4f8]' : 'w-2 h-2 bg-[#5f6368] hover:bg-[#9aa0a6]'}`} />
+                  className={`rounded-full transition-all ${i === slide ? 'w-5 h-1.5 bg-[#8ab4f8]' : 'w-1.5 h-1.5 bg-[#5f6368] hover:bg-[#9aa0a6]'}`} />
               ))}
             </div>
           </div>
         </div>
+
+        {/* ── Features row ── */}
+        <div className="w-full max-w-2xl mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {FEATURES.map((f, i) => (
+            <div key={i} className="flex flex-col items-center sm:items-start gap-2 px-5 py-4 bg-[#303134] rounded-xl border border-white/6 text-center sm:text-left">
+              <div className="w-9 h-9 bg-[#4f46e5]/12 rounded-lg flex items-center justify-center">
+                {f.icon}
+              </div>
+              <p className="text-sm font-medium text-white">{f.title}</p>
+              <p className="text-xs text-[#9aa0a6] leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
       </main>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-[#3c4043] px-4 sm:px-8 py-6">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Left — brand */}
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-[#4f46e5] rounded-md flex items-center justify-center">
+              <Video className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-medium text-[#9aa0a6]">SyncSpace</span>
+            <span className="text-[#5f6368] text-sm">·</span>
+            <span className="text-xs text-[#5f6368]">© {new Date().getFullYear()}</span>
+          </div>
+
+          {/* Center — links */}
+          <div className="flex items-center gap-5 text-xs text-[#9aa0a6]">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">Help</a>
+            <a href="#" className="hover:text-white transition-colors">Enterprise</a>
+          </div>
+
+          {/* Right — social */}
+          <div className="flex items-center gap-3">
+            <a href="#" className="p-1.5 text-[#5f6368] hover:text-[#9aa0a6] transition-colors">
+              <Github className="w-4 h-4" />
+            </a>
+            <a href="#" className="p-1.5 text-[#5f6368] hover:text-[#9aa0a6] transition-colors">
+              <Twitter className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
