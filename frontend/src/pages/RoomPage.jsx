@@ -100,11 +100,11 @@ function getGridLayout(n) {
 function useNotificationSounds() {
   const ctxRef = useRef(null);
 
-  const getCtx = () => {
+  const getCtx = async () => {
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
       ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
+    if (ctxRef.current.state === 'suspended') await ctxRef.current.resume();
     return ctxRef.current;
   };
 
@@ -122,18 +122,18 @@ function useNotificationSounds() {
     osc.stop(startTime + duration);
   };
 
-  const playJoinSound = useCallback(() => {
+  const playJoinSound = useCallback(async () => {
     try {
-      const ctx = getCtx();
+      const ctx = await getCtx();
       const t = ctx.currentTime;
       playTone(880, 0.15, 0.18, 'sine', t, ctx);
       playTone(1109, 0.22, 0.14, 'sine', t + 0.12, ctx);
     } catch { }
   }, []);
 
-  const playHandRaiseSound = useCallback(() => {
+  const playHandRaiseSound = useCallback(async () => {
     try {
-      const ctx = getCtx();
+      const ctx = await getCtx();
       const t = ctx.currentTime;
       playTone(660, 0.12, 0.16, 'sine', t, ctx);
       playTone(880, 0.12, 0.14, 'sine', t + 0.1, ctx);
@@ -141,18 +141,18 @@ function useNotificationSounds() {
     } catch { }
   }, []);
 
-  const playLeaveSound = useCallback(() => {
+  const playLeaveSound = useCallback(async () => {
     try {
-      const ctx = getCtx();
+      const ctx = await getCtx();
       const t = ctx.currentTime;
       playTone(660, 0.15, 0.14, 'sine', t, ctx);
       playTone(440, 0.20, 0.12, 'sine', t + 0.13, ctx);
     } catch { }
   }, []);
 
-  const playFileSound = useCallback(() => {
+  const playFileSound = useCallback(async () => {
     try {
-      const ctx = getCtx();
+      const ctx = await getCtx();
       const t = ctx.currentTime;
       playTone(1200, 0.06, 0.12, 'sine', t, ctx);
       playTone(1500, 0.10, 0.10, 'sine', t + 0.05, ctx);
@@ -556,15 +556,15 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }
 }
 
 // ─── Control button (Google Meet style) ──────────────────────────────────────
-function CtrlBtn({ onClick, active, danger, title, children, badge }) {
+function CtrlBtn({ onClick, active, danger, title, children, badge, activeClass, baseClass }) {
   return (
     <button onClick={onClick} title={title}
       className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 relative flex-shrink-0
         ${danger
           ? 'bg-[#ea4335] text-white hover:bg-[#d33c2c]'
           : active
-            ? 'bg-[#8ab4f8]/20 text-[#8ab4f8] hover:bg-[#8ab4f8]/30'
-            : 'bg-[#3c4043] text-white hover:bg-[#4a4d51]'}`}
+            ? (activeClass || 'bg-[#8ab4f8]/20 text-[#8ab4f8] hover:bg-[#8ab4f8]/30')
+            : (baseClass || 'bg-[#3c4043] text-white hover:bg-[#4a4d51]')}`}
     >
       {children}
       {badge > 0 && (
@@ -620,8 +620,12 @@ function MicGroup({ audioEnabled, onToggle, isSpeaking, bars = [0,0,0], devices,
           <div className="flex items-end justify-center gap-[3px] h-5">
             {bars.map((b, i) => (
               <span key={i}
-                className="w-[3px] rounded-full bg-[#8ab4f8]"
-                style={{ height: `${Math.max(3, Math.round(b * BAR_MAX))}px`, transition: 'height 60ms linear' }} />
+                className="w-[3px] h-5 rounded-full bg-[#8ab4f8] block"
+                style={{
+                  transform: `scaleY(${Math.max(0.1, Math.min(1, b * 2.2))})`,
+                  transformOrigin: 'bottom',
+                  transition: 'transform 30ms ease-out'
+                }} />
             ))}
           </div>
         </button>
@@ -1199,28 +1203,38 @@ export default function RoomPage() {
             }} />
 
           {/* Screen share */}
-          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop presenting (S)' : 'Present now (S)'}>
+          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop presenting (S)' : 'Present now (S)'}
+            baseClass="bg-[#0d652d]/70 text-[#34a853] hover:bg-[#0d652d]"
+            activeClass="bg-[#34a853]/20 text-[#34a853] hover:bg-[#34a853]/30">
             {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
           </CtrlBtn>
 
           {/* Raise hand */}
-          <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)">
+          <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)"
+            baseClass="bg-[#7b4700]/70 text-[#f9ab00] hover:bg-[#7b4700]"
+            activeClass="bg-[#f9ab00]/20 text-[#f9ab00] hover:bg-[#f9ab00]/30">
             <Hand className="w-6 h-6" />
           </CtrlBtn>
 
           {/* Chat */}
           <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat}
-            title="Chat with everyone (C)" badge={activePanel !== PANELS.chat ? unreadChat : 0}>
+            title="Chat with everyone (C)" badge={activePanel !== PANELS.chat ? unreadChat : 0}
+            baseClass="bg-[#174ea6]/70 text-[#8ab4f8] hover:bg-[#174ea6]"
+            activeClass="bg-[#8ab4f8]/20 text-[#8ab4f8] hover:bg-[#8ab4f8]/30">
             <MessageSquare className="w-6 h-6" />
           </CtrlBtn>
 
           {/* Layout */}
-          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)">
+          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)"
+            baseClass="bg-[#4a4d51]/80 text-[#e8eaed] hover:bg-[#5a5d61]"
+            activeClass="bg-[#8ab4f8]/20 text-[#8ab4f8] hover:bg-[#8ab4f8]/30">
             <LayoutGrid className="w-6 h-6" />
           </CtrlBtn>
 
           {/* More */}
-          <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options">
+          <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options"
+            baseClass="bg-[#4a4d51]/80 text-[#e8eaed] hover:bg-[#5a5d61]"
+            activeClass="bg-[#8ab4f8]/20 text-[#8ab4f8] hover:bg-[#8ab4f8]/30">
             <MoreHorizontal className="w-6 h-6" />
           </CtrlBtn>
 

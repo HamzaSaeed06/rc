@@ -578,7 +578,7 @@ export default function ChatPanel({ roomId }) {
           return own ? (
             /* ── MY MESSAGE (right) ── */
             <div key={key}
-              className="group relative flex justify-end items-end gap-2 px-3 pt-1.5 pb-1"
+              className="group relative flex justify-end items-start gap-2 px-3 pt-1.5 pb-1"
               onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
               onTouchEnd={handleTouchEnd}
