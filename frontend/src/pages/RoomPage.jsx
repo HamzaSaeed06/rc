@@ -994,12 +994,6 @@ export default function RoomPage() {
           <CtrlBtn onClick={() => setShowSettings(true)} title="Settings">
             <Settings className="w-5 h-5" />
           </CtrlBtn>
-          {/* More ⋯ */}
-          <div ref={moreRef} className="relative">
-            <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options">
-              <MoreHorizontal className="w-5 h-5" />
-            </CtrlBtn>
-          </div>
         </div>
       </header>
 
@@ -1050,57 +1044,57 @@ export default function RoomPage() {
         )}
       </div>
 
-      {/* ══ BOTTOM BAR ════════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between py-2 sm:py-3 px-2 sm:px-4 flex-shrink-0 bg-[#202124] border-t border-white/6 gap-1">
+      {/* ══ BOTTOM BAR (Google Meet style) ══════════════════════════════════ */}
+      <footer className="flex items-center justify-between py-2 sm:py-3 px-3 sm:px-6 flex-shrink-0 bg-[#202124] border-t border-white/6">
 
-        {/* Left — clock */}
-        <div className="hidden md:flex flex-col w-28 justify-center flex-shrink-0">
-          <span className="text-sm font-bold text-white font-mono">{clockTime}</span>
-          {isRecording && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-              <span className="text-[10px] text-red-400 font-semibold">REC</span>
-            </div>
-          )}
+        {/* Left — clock + meeting code */}
+        <div className="hidden md:flex flex-col min-w-[120px] justify-center flex-shrink-0">
+          <span className="text-sm font-semibold text-white font-mono tracking-wide">{clockTime}</span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="text-[11px] text-[#9aa0a6] font-mono truncate max-w-[100px]">{roomId?.slice(0, 8)}…</span>
+            {isRecording && (
+              <span className="flex items-center gap-1 ml-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping flex-shrink-0" />
+                <span className="text-[10px] text-red-400 font-semibold">REC</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Center — main controls */}
         <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-center overflow-x-auto scrollbar-none px-1 py-0.5">
-          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'} label={audioEnabled ? 'Mic' : 'Muted'}>
-            {audioEnabled ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'}>
+            {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'} label={videoEnabled ? 'Cam' : 'No cam'}>
-            {videoEnabled ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'}>
+            {videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop sharing (S)' : 'Share screen (S)'} label="Share">
-            {isScreenSharing ? <MonitorOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Monitor className="w-4 h-4 sm:w-5 sm:h-5" />}
+          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop sharing (S)' : 'Share screen (S)'}>
+            {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
           </CtrlBtn>
-          <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)" label="Hand">
-            <Hand className="w-4 h-4 sm:w-5 sm:h-5" />
+          <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)">
+            <Hand className="w-5 h-5" />
           </CtrlBtn>
           <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat} title="Chat (C)"
-            badge={activePanel !== PANELS.chat ? unreadChat : 0} label="Chat">
-            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+            badge={activePanel !== PANELS.chat ? unreadChat : 0}>
+            <MessageSquare className="w-5 h-5" />
           </CtrlBtn>
-
-          {/* Layout picker button */}
-          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)" label="Layout">
-            <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
+          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)">
+            <LayoutGrid className="w-5 h-5" />
           </CtrlBtn>
+          <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options">
+            <MoreHorizontal className="w-5 h-5" />
+          </CtrlBtn>
+        </div>
 
-          {/* Separator */}
-          <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1 flex-shrink-0" />
-
-          {/* Leave */}
+        {/* Right — Leave button (Google Meet style: isolated red pill) */}
+        <div className="flex items-center justify-end min-w-[120px] flex-shrink-0">
           <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 h-10 sm:h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-sm transition-all flex-shrink-0">
-            <PhoneOff className="w-4 h-4" />
+            className="flex items-center gap-2 px-5 h-12 rounded-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium text-sm transition-all shadow-lg shadow-red-600/20">
+            <PhoneOff className="w-5 h-5" />
             <span className="hidden sm:block">Leave</span>
           </button>
         </div>
-
-        {/* Right — spacer */}
-        <div className="hidden md:block w-28 flex-shrink-0" />
       </footer>
 
       {/* ══ OVERLAYS ══════════════════════════════════════════════════════════ */}

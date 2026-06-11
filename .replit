@@ -58,3 +58,13 @@ externalPort = 80
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "cd backend && node src/server.js"]
 build = ["bash", "-c", "cd frontend && npm install && npm run build"]
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "f461cd9305e91ac820b8a9da32cf222f3d4ae8370d078be18c4a74903a141d872d90b4664f3296d56474106acff2cfaa1138cc51d2067f3c17eac805be77298c"
+JWT_REFRESH_SECRET = "3c49d44ed6c7462d229acc2541a73f7796252a00a2f4e2b7772ca89e61a409b744b1690943bf2a721ceb4a7cc26cc3f537b41f9c76e99ffdcb8b39d5efdbb1f2"
+JWT_EXPIRES_IN = "15m"
+JWT_REFRESH_EXPIRES_IN = "7d"
+NODE_ENV = "development"
+PORT = "3000"
