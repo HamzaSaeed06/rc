@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Video, Keyboard, Shield, Users, Zap, Github, Twitter } from 'lucide-react';
+import { Video, Keyboard, Shield, Users, Zap } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 
 const SLIDES = [
@@ -73,8 +73,8 @@ export default function HomePage() {
           <span className="text-base font-semibold text-white tracking-tight">SyncSpace</span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
-          <span className="text-sm text-[#9aa0a6] hidden lg:block">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-sm text-[#9aa0a6] hidden lg:block mr-3">
             {fmt(time)} · {fmtDate(time)}
           </span>
           {isAuthenticated ? (
@@ -84,11 +84,12 @@ export default function HomePage() {
             </button>
           ) : (
             <>
-              <Link to="/login" className="text-sm font-medium text-[#8ab4f8] hover:text-white transition-colors px-2 py-2">
-                Log in
+              <Link to="/login"
+                className="text-sm font-medium text-[#9aa0a6] hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
+                Sign in
               </Link>
               <Link to="/register"
-                className="text-sm font-medium text-[#202124] bg-white hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors">
+                className="text-sm font-medium text-white bg-[#4f46e5] hover:bg-[#4338ca] px-4 py-2 rounded-lg transition-colors">
                 Sign up
               </Link>
             </>
@@ -118,9 +119,9 @@ export default function HomePage() {
               New meeting
             </button>
 
-            {/* Code input + Join button side by side */}
-            <form onSubmit={handleJoin} className="flex items-center gap-2">
-              <div className="flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-lg px-3 gap-2 transition-colors focus-within:border-[#8ab4f8] flex-1 sm:flex-none">
+            {/* Code input + Join button */}
+            <form onSubmit={handleJoin} className="flex items-center gap-0">
+              <div className="flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-lg rounded-r-none px-3 gap-2 transition-colors focus-within:border-[#8ab4f8] flex-1 sm:flex-none border-r-0">
                 <Keyboard className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
                 <input
                   type="text"
@@ -132,7 +133,7 @@ export default function HomePage() {
               </div>
               <button type="submit"
                 disabled={!code.trim()}
-                className="px-4 py-2.5 text-sm font-medium rounded-lg border border-[#5f6368] text-[#e8eaed] hover:border-[#8ab4f8] hover:text-white disabled:opacity-40 disabled:cursor-default transition-colors whitespace-nowrap flex-shrink-0">
+                className="px-4 py-2.5 text-sm font-medium rounded-lg rounded-l-none border border-[#5f6368] border-l-[#3c4043] text-[#8ab4f8] hover:bg-[#4f46e5]/10 hover:text-white disabled:opacity-40 disabled:cursor-default transition-colors whitespace-nowrap flex-shrink-0">
                 Join
               </button>
             </form>
@@ -149,7 +150,8 @@ export default function HomePage() {
         <div className="w-full max-w-sm sm:max-w-md mt-8 sm:mt-10">
           <div className="relative overflow-hidden rounded-2xl bg-[#303134]">
             <div className="px-8 sm:px-12 py-10 sm:py-12 flex flex-col items-center text-center min-h-[240px] sm:min-h-[260px] justify-center">
-              <div className="w-16 h-16 bg-[#202124] rounded-xl flex items-center justify-center mb-6 shadow-lg">
+              {/* ✦ Circular icon container */}
+              <div className="w-16 h-16 bg-[#202124] rounded-full flex items-center justify-center mb-6 shadow-lg">
                 {SLIDES[slide].icon}
               </div>
               <h2 className="text-base sm:text-lg font-semibold text-white mb-2.5 leading-snug">
@@ -171,8 +173,9 @@ export default function HomePage() {
         {/* ── Features row ── */}
         <div className="w-full max-w-2xl mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {FEATURES.map((f, i) => (
-            <div key={i} className="flex flex-col items-center sm:items-start gap-2 px-5 py-4 bg-[#303134] rounded-xl border border-white/6 text-center sm:text-left">
-              <div className="w-9 h-9 bg-[#4f46e5]/12 rounded-lg flex items-center justify-center">
+            <div key={i} className="flex flex-col items-center sm:items-start gap-2.5 px-5 py-4 bg-[#303134] rounded-xl border border-white/6 text-center sm:text-left">
+              {/* ✦ Circular icon container */}
+              <div className="w-9 h-9 bg-[#4f46e5]/12 rounded-full flex items-center justify-center">
                 {f.icon}
               </div>
               <p className="text-sm font-medium text-white">{f.title}</p>
@@ -183,34 +186,55 @@ export default function HomePage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-[#3c4043] px-4 sm:px-8 py-6">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Left — brand */}
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[#4f46e5] rounded-md flex items-center justify-center">
-              <Video className="w-3.5 h-3.5 text-white" />
+      <footer className="border-t border-[#3c4043] px-4 sm:px-8 py-8 mt-4">
+        <div className="max-w-5xl mx-auto">
+          {/* Top row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-6">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-7 h-7 bg-[#4f46e5] rounded-lg flex items-center justify-center">
+                  <Video className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-white">SyncSpace</span>
+              </div>
+              <p className="text-xs text-[#5f6368] max-w-xs leading-relaxed">
+                Secure, enterprise-grade video conferencing for everyone. No account needed to join.
+              </p>
             </div>
-            <span className="text-sm font-medium text-[#9aa0a6]">SyncSpace</span>
-            <span className="text-[#5f6368] text-sm">·</span>
-            <span className="text-xs text-[#5f6368]">© {new Date().getFullYear()}</span>
+
+            {/* Links grid */}
+            <div className="flex gap-10 sm:gap-12">
+              <div className="flex flex-col gap-2">
+                <p className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-widest mb-1">Product</p>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Features</a>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Enterprise</a>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Pricing</a>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-widest mb-1">Company</p>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">About</a>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Blog</a>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Careers</a>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-widest mb-1">Legal</p>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Privacy</a>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Terms</a>
+                <a href="#" className="text-xs text-[#9aa0a6] hover:text-white transition-colors">Security</a>
+              </div>
+            </div>
           </div>
 
-          {/* Center — links */}
-          <div className="flex items-center gap-5 text-xs text-[#9aa0a6]">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Help</a>
-            <a href="#" className="hover:text-white transition-colors">Enterprise</a>
-          </div>
-
-          {/* Right — social */}
-          <div className="flex items-center gap-3">
-            <a href="#" className="p-1.5 text-[#5f6368] hover:text-[#9aa0a6] transition-colors">
-              <Github className="w-4 h-4" />
-            </a>
-            <a href="#" className="p-1.5 text-[#5f6368] hover:text-[#9aa0a6] transition-colors">
-              <Twitter className="w-4 h-4" />
-            </a>
+          {/* Bottom row */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 border-t border-[#3c4043]">
+            <p className="text-xs text-[#5f6368]">
+              © {new Date().getFullYear()} SyncSpace. All rights reserved.
+            </p>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+              <span className="text-xs text-[#5f6368]">All systems operational</span>
+            </div>
           </div>
         </div>
       </footer>
