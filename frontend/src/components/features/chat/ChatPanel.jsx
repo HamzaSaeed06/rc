@@ -574,90 +574,144 @@ export default function ChatPanel({ roomId }) {
 
           if (msg.type === 'system') return <SystemMessage key={key} content={msg.content} />;
 
-          return (
+          /* ── own messages: right side | others: left side ── */
+          return own ? (
+            /* ── MY MESSAGE (right) ── */
             <div key={key}
-              className="group relative px-3 pt-2 pb-1"
-              onMouseEnter={() => !isPending && setHoveredMsgId(msg._id)}
-              onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
+              className="group relative flex justify-end px-3 pt-1.5 pb-1"
+              onMouseLeave={() => setMoreEmojiMsgId(null)}
               onTouchStart={() => handleTouchStart(msg._id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               onClick={(e) => { e.stopPropagation(); if (!isPending) setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
             >
-              {/* Row: avatar + content */}
-              <div className="flex items-start gap-2.5">
-                {/* Avatar */}
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 select-none"
-                  style={{ background: senderColor.bg, color: senderColor.text }} title={senderName}>
-                  {initials.length === 1 ? initials : senderName.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
-                </div>
+              <div className="flex flex-col items-end max-w-[78%]">
+                {/* Time */}
+                <span className="text-[10px] text-[#9aa0a6] mb-1 pr-1">
+                  {formatTime(msg.createdAt)}
+                  {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
+                </span>
 
-                {/* Content column */}
-                <div className="flex-1 min-w-0">
-                  {/* Name + time */}
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-sm font-semibold leading-none text-[#e8eaed]">
-                      {own ? 'You' : senderName}
-                    </span>
-                    <span className="text-[10px] text-[#9aa0a6] leading-none">
-                      {formatTime(msg.createdAt)}
-                      {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
-                    </span>
+                {/* Reply quote */}
+                {msg.replyTo && (
+                  <div className="mb-1 px-2 py-1.5 rounded-xl bg-white/6 border-l-2 border-[#8ab4f8]/60 max-w-full self-end">
+                    <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
+                    <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
                   </div>
+                )}
 
-                  {/* Reply quote */}
-                  {msg.replyTo && (
-                    <div className="mb-1.5 px-2 py-1.5 rounded-xl bg-white/6 border-l-2 border-[#8ab4f8]/60 max-w-[85%]">
-                      <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
-                      <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
-                    </div>
-                  )}
-
-                  {/* Bubble — width fits content */}
+                {/* Bubble */}
+                <div className={`relative group/bubble inline-block px-3 py-2 rounded-2xl rounded-tr-sm
+                  bg-[#1a73e8] text-white ${isPending ? 'opacity-60' : ''}`}>
                   {msg.type === 'file' ? (
-                    <div className="inline-block px-3 py-2 rounded-2xl rounded-tl-sm bg-[#3a3d42] max-w-[85%]">
-                      {msg.content && (
-                        <p className="text-sm text-[#e8eaed] leading-relaxed whitespace-pre-wrap break-words mb-1">
-                          {msg.content}
-                        </p>
-                      )}
+                    <>
+                      {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
                       <FileCard file={msg.file} baseUrl={baseUrl} />
-                    </div>
+                    </>
                   ) : (
-                    <div className={`inline-block px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%]
-                      ${own ? 'bg-[#1a73e8] text-white' : 'bg-[#3a3d42] text-[#e8eaed]'}
-                      ${isPending ? 'opacity-60' : ''}`}>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">
-                        {msg.content}
-                      </p>
-                    </div>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
                   )}
-
-                  {/* Inline copy button */}
+                  {/* Copy button — inside bubble, top-right, fades in on hover */}
                   {!isPending && (
-                    <div className="flex mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button type="button"
-                        onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
-                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] text-[#9aa0a6] hover:text-white hover:bg-white/10 transition-all"
-                        title="Copy">
-                        {copiedMsgId === msg._id
-                          ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
-                          : <><Copy className="w-3 h-3" /><span>Copy</span></>}
-                      </button>
-                    </div>
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
+                      className="absolute -top-2 -right-2 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200
+                        flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] bg-[#1f2023] border border-white/10
+                        text-[#9aa0a6] hover:text-white shadow-lg z-10"
+                      title="Copy">
+                      {copiedMsgId === msg._id
+                        ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied</span></>
+                        : <Copy className="w-3 h-3" />}
+                    </button>
                   )}
-
-                  {/* Reaction pills */}
-                  <ReactionPills reactions={msg.reactions} userId={user?._id}
-                    onToggle={handleToggleReaction} messageId={msg._id} />
                 </div>
+
+                {/* Reaction pills */}
+                <ReactionPills reactions={msg.reactions} userId={user?._id}
+                  onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
-              {/* Emoji bar — hover or click */}
+              {/* Emoji bar — click only */}
               {!isPending && (
-                <MessageActions
-                  msg={msg}
-                  userId={user?._id}
+                <MessageActions msg={msg} userId={user?._id}
+                  onReact={handleToggleReaction}
+                  onReply={(m) => { setReplyTo(m); inputRef.current?.focus(); }}
+                  visible={isHovered}
+                  onMore={() => setMoreEmojiMsgId(moreEmojiMsgId === msg._id ? null : msg._id)}
+                  showMore={moreEmojiMsgId === msg._id}
+                  onCloseMore={() => setMoreEmojiMsgId(null)}
+                />
+              )}
+            </div>
+          ) : (
+            /* ── OTHERS' MESSAGE (left) ── */
+            <div key={key}
+              className="group relative flex items-start gap-2.5 px-3 pt-2 pb-1"
+              onMouseLeave={() => setMoreEmojiMsgId(null)}
+              onTouchStart={() => handleTouchStart(msg._id)}
+              onTouchEnd={handleTouchEnd}
+              onTouchMove={handleTouchEnd}
+              onClick={(e) => { e.stopPropagation(); if (!isPending) setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
+            >
+              {/* Avatar */}
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 select-none"
+                style={{ background: senderColor.bg, color: senderColor.text }} title={senderName}>
+                {initials}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                {/* Name + time */}
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-sm font-semibold leading-none text-[#e8eaed]">{senderName}</span>
+                  <span className="text-[10px] text-[#9aa0a6] leading-none">
+                    {formatTime(msg.createdAt)}
+                    {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
+                  </span>
+                </div>
+
+                {/* Reply quote */}
+                {msg.replyTo && (
+                  <div className="mb-1 px-2 py-1.5 rounded-xl bg-white/6 border-l-2 border-[#8ab4f8]/60 max-w-[85%]">
+                    <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
+                    <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
+                  </div>
+                )}
+
+                {/* Bubble */}
+                <div className={`relative group/bubble inline-block px-3 py-2 rounded-2xl rounded-tl-sm
+                  bg-[#3a3d42] text-[#e8eaed] ${isPending ? 'opacity-60' : ''}`}>
+                  {msg.type === 'file' ? (
+                    <>
+                      {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
+                      <FileCard file={msg.file} baseUrl={baseUrl} />
+                    </>
+                  ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
+                  )}
+                  {/* Copy button — inside bubble, top-right, fades in on hover */}
+                  {!isPending && (
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
+                      className="absolute -top-2 -right-2 opacity-0 group-hover/bubble:opacity-100 transition-all duration-200
+                        flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] bg-[#1f2023] border border-white/10
+                        text-[#9aa0a6] hover:text-white shadow-lg z-10"
+                      title="Copy">
+                      {copiedMsgId === msg._id
+                        ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied</span></>
+                        : <Copy className="w-3 h-3" />}
+                    </button>
+                  )}
+                </div>
+
+                {/* Reaction pills */}
+                <ReactionPills reactions={msg.reactions} userId={user?._id}
+                  onToggle={handleToggleReaction} messageId={msg._id} />
+              </div>
+
+              {/* Emoji bar — click only */}
+              {!isPending && (
+                <MessageActions msg={msg} userId={user?._id}
                   onReact={handleToggleReaction}
                   onReply={(m) => { setReplyTo(m); inputRef.current?.focus(); }}
                   visible={isHovered}
@@ -669,7 +723,7 @@ export default function ChatPanel({ roomId }) {
 
               {/* Mobile long-press menu */}
               {isMobileMenuOpen && (
-                <div className="absolute right-2 top-0 z-30 bg-[#303134] rounded-2xl shadow-2xl py-2 min-w-[200px] border border-white/8">
+                <div className="absolute left-12 top-0 z-30 bg-[#303134] rounded-2xl shadow-2xl py-2 min-w-[200px] border border-white/8">
                   <p className="px-4 py-1 text-[10px] text-[#9aa0a6] uppercase tracking-widest">React</p>
                   <div className="flex gap-1.5 px-4 py-2">
                     {EMOJI_LIST.map(emoji => (
