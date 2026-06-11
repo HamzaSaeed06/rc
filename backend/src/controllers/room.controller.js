@@ -8,7 +8,11 @@ const AppError = require('../utils/AppError');
 
 const createRoom = async (req, res, next) => {
   try {
-    const { name, isPrivate, maxParticipants, password } = req.body;
+    const { name, isPrivate, maxParticipants, password, durationMinutes } = req.body;
+
+    const scheduledEndAt = durationMinutes && durationMinutes > 0
+      ? new Date(Date.now() + durationMinutes * 60 * 1000)
+      : null;
 
     const room = await Room.create({
       name,
@@ -17,7 +21,8 @@ const createRoom = async (req, res, next) => {
       isPrivate: isPrivate || false,
       maxParticipants: maxParticipants || 10,
       password: isPrivate ? password : null,
-      participants: [{ user: req.user._id }],
+      participants: [],
+      scheduledEndAt,
     });
 
     await room.populate('host', 'name email avatar');

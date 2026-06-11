@@ -34,9 +34,16 @@ const socketHandler = (io) => {
           return;
         }
         const room = await roomService.addParticipant(roomId, socket.user._id, socket.id);
-        
+
         socket.join(roomId);
         socket.currentRoom = roomId;
+
+        // Clear empty room timer if someone joined the room
+        if (io._emptyRoomTimers && io._emptyRoomTimers[roomId]) {
+          clearTimeout(io._emptyRoomTimers[roomId]);
+          delete io._emptyRoomTimers[roomId];
+          logger.info(`Cleared empty room timer for ${roomId} because someone joined.`);
+        }
 
         // Notify others in the room
         socket.to(roomId).emit('room:user-joined', {
@@ -57,6 +64,35 @@ const socketHandler = (io) => {
         const messages = await messageService.getHistory(roomId, 50);
         socket.emit('chat:history', { messages });
 
+        // ── Scheduled end: if a scheduledEndAt is set, broadcast room:ended at that time
+        if (room.scheduledEndAt) {
+          const msLeft = new Date(room.scheduledEndAt).getTime() - Date.now();
+          if (msLeft > 0) {
+            // Only start timer once — keyed by roomId to avoid multi-user duplication
+            if (!io._scheduledEndTimers) io._scheduledEndTimers = {};
+            if (!io._scheduledEndTimers[roomId]) {
+              io._scheduledEndTimers[roomId] = setTimeout(async () => {
+                try {
+                  const Room = require('../models/Room');
+                  await Room.updateOne({ roomId }, { $set: { isActive: false, endedAt: new Date() } });
+                  io.to(roomId).emit('room:ended');
+                  logger.info(`[Scheduled] Room ${roomId} ended automatically at scheduled time.`);
+                } catch (e) {
+                  logger.error(`[Scheduled] Error ending room ${roomId}: ${e.message}`);
+                } finally {
+                  delete io._scheduledEndTimers[roomId];
+                }
+              }, msLeft);
+            }
+          } else {
+            // Already past scheduled time — end immediately
+            const Room = require('../models/Room');
+            await Room.updateOne({ roomId }, { $set: { isActive: false, endedAt: new Date() } });
+            socket.emit('room:ended');
+            return;
+          }
+        }
+
         logger.info(`${socket.user.name} joined room ${roomId}`);
       } catch (error) {
         logger.error(`room:join error: ${error.message}`);
@@ -67,7 +103,6 @@ const socketHandler = (io) => {
     socket.on('room:leave', async ({ roomId }) => {
       socket.leave(roomId);
       socket.currentRoom = null;
-      // Include name so frontend toast can display it
       socket.to(roomId).emit('room:user-left', {
         userId: socket.user._id,
         socketId: socket.id,
@@ -76,7 +111,31 @@ const socketHandler = (io) => {
 
       try {
         const result = await roomService.removeParticipant(roomId, socket.user._id);
-        if (result && result.newHost) {
+        if (result?.emptyNow) {
+          // Room is empty now. 15-second grace period before auto-ending.
+          if (!io._emptyRoomTimers) io._emptyRoomTimers = {};
+          io._emptyRoomTimers[roomId] = setTimeout(async () => {
+            try {
+              const Room = require('../models/Room');
+              const doc = await Room.findOne({ roomId });
+              // Verify it's STILL empty and active
+              if (doc && doc.participants.length === 0 && doc.isActive) {
+                await Room.updateOne({ roomId }, { $set: { isActive: false, endedAt: new Date() } });
+                io.to(roomId).emit('room:ended');
+                logger.info(`Room ${roomId} auto-ended (empty for 15s grace period).`);
+                if (io._scheduledEndTimers && io._scheduledEndTimers[roomId]) {
+                  clearTimeout(io._scheduledEndTimers[roomId]);
+                  delete io._scheduledEndTimers[roomId];
+                }
+              }
+            } catch (e) {
+              logger.error(`Error ending room randomly: ${e.message}`);
+            } finally {
+              delete io._emptyRoomTimers[roomId];
+            }
+          }, 15000);
+          logger.info(`Room ${roomId} is empty. Started 15s auto-end grace period.`);
+        } else if (result?.newHost) {
           io.to(roomId).emit('room:host-changed', {
             hostId: result.newHost._id,
             hostName: result.newHost.name,
@@ -183,7 +242,7 @@ const socketHandler = (io) => {
     socket.on('room:change-host', async ({ roomId, newHostUserId }) => {
       try {
         const updatedRoom = await roomService.changeHost(roomId, socket.user._id, newHostUserId);
-        
+
         io.to(roomId).emit('room:host-changed', {
           hostId: newHostUserId,
           hostName: updatedRoom.host.name,
@@ -236,6 +295,12 @@ const socketHandler = (io) => {
       }
     });
 
+    // ─── Files ─────────────────────────────────────────────────────────────────
+
+    socket.on('file:uploaded', ({ roomId, file }) => {
+      socket.to(roomId).emit('file:uploaded', { file });
+    });
+
     // ─── Media Toggle ──────────────────────────────────────────────────────────
 
     socket.on('media:toggle', ({ roomId, type, enabled }) => {
@@ -256,7 +321,27 @@ const socketHandler = (io) => {
         const roomId = socket.currentRoom;
         try {
           const result = await roomService.removeParticipant(roomId, socket.user._id);
-          if (result && result.newHost) {
+          if (result?.emptyNow) {
+            if (!io._emptyRoomTimers) io._emptyRoomTimers = {};
+            io._emptyRoomTimers[roomId] = setTimeout(async () => {
+              try {
+                const Room = require('../models/Room');
+                const doc = await Room.findOne({ roomId });
+                if (doc && doc.participants.length === 0 && doc.isActive) {
+                  await Room.updateOne({ roomId }, { $set: { isActive: false, endedAt: new Date() } });
+                  io.to(roomId).emit('room:ended');
+                  logger.info(`Room ${roomId} auto-ended (empty for 15s grace period after disconnect).`);
+                  if (io._scheduledEndTimers && io._scheduledEndTimers[roomId]) {
+                    clearTimeout(io._scheduledEndTimers[roomId]);
+                    delete io._scheduledEndTimers[roomId];
+                  }
+                }
+              } catch (e) { } finally {
+                delete io._emptyRoomTimers[roomId];
+              }
+            }, 15000);
+            logger.info(`Room ${roomId} is empty after disconnect. Started 15s auto-end grace period.`);
+          } else if (result?.newHost) {
             io.to(roomId).emit('room:host-changed', {
               hostId: result.newHost._id,
               hostName: result.newHost.name,

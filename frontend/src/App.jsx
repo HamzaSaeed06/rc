@@ -6,6 +6,8 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
 import RoomPage from '@/pages/RoomPage';
+import LobbyPage from '@/pages/LobbyPage';
+import HomePage from '@/pages/HomePage';
 
 export default function App() {
   const { initialize } = useAuthStore();
@@ -17,7 +19,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
@@ -29,6 +31,14 @@ export default function App() {
           }
         />
         <Route
+          path="/lobby/:roomId"
+          element={
+            <ProtectedRoute>
+              <LobbyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/room/:roomId"
           element={
             <ProtectedRoute>
@@ -36,7 +46,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

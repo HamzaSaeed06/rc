@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Video, Mail, Lock, User, Loader2 } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuthStore();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -18,7 +19,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form);
-      navigate('/dashboard');
+      navigate(location.state?.from || '/dashboard');
     } catch (err) {
       const msg = err.response?.data?.errors?.[0] || err.response?.data?.message || 'Registration failed.';
       setError(msg);

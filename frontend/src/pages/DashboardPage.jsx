@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [newRoom, setNewRoom] = useState({ name: '', isPrivate: false, maxParticipants: 10, password: '' });
+  const [newRoom, setNewRoom] = useState({ name: '', isPrivate: false, maxParticipants: 10, password: '', durationMinutes: 0 });
   const [selectedPrivateRoom, setSelectedPrivateRoom] = useState(null);
   const [joinPassword, setJoinPassword] = useState('');
   const [showJoinPw, setShowJoinPw] = useState(false);
@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [joinError, setJoinError] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [joinCode, setJoinCode] = useState('');
 
   useEffect(() => { fetchRooms(); }, []);
 
@@ -37,7 +38,7 @@ export default function DashboardPage() {
     setCreating(true);
     try {
       const { data } = await api.post('/rooms', newRoom);
-      navigate(`/room/${data.data.room.roomId}`);
+      navigate(`/lobby/${data.data.room.roomId}`);
     } catch { /* silent */ } finally { setCreating(false); }
   };
 
@@ -46,7 +47,7 @@ export default function DashboardPage() {
       setSelectedPrivateRoom(room);
       setJoinPassword(''); setJoinError(''); setShowJoinPw(false);
     } else {
-      navigate(`/room/${room.roomId}`);
+      navigate(`/lobby/${room.roomId}`);
     }
   };
 
@@ -55,11 +56,19 @@ export default function DashboardPage() {
     setVerifyingPassword(true); setJoinError('');
     try {
       await api.post(`/rooms/${selectedPrivateRoom.roomId}/verify-password`, { password: joinPassword });
+      const roomId = selectedPrivateRoom.roomId;
       setSelectedPrivateRoom(null);
-      navigate(`/room/${selectedPrivateRoom.roomId}`);
+      navigate(`/lobby/${roomId}`);
     } catch (err) {
       setJoinError(err.response?.data?.message || 'Incorrect password');
     } finally { setVerifyingPassword(false); }
+  };
+
+  const handleJoinCodeSubmit = (e) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+    const cleanCode = joinCode.replace(/https?:\/\/[^\/]+\/lobby\//, '').replace(/https?:\/\/[^\/]+\/room\//, '').trim();
+    navigate(`/lobby/${cleanCode}`);
   };
 
   const handleLogout = async () => { await logout(); navigate('/login'); };
@@ -81,7 +90,7 @@ export default function DashboardPage() {
   };
 
   const initials = (name) => (name || '?').charAt(0).toUpperCase();
-  const avatarColors = ['#4f46e5','#7c3aed','#0891b2','#059669','#d97706','#dc2626','#db2777'];
+  const avatarColors = ['#4f46e5', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#db2777'];
   const getColor = (name) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
 
   return (
@@ -123,11 +132,29 @@ export default function DashboardPage() {
               {rooms.length > 0 ? `${rooms.length} active room${rooms.length !== 1 ? 's' : ''}` : 'No active rooms yet'}
             </p>
           </div>
-          <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-primary-600/20">
-            <Plus className="w-4 h-4" />
-            New Meeting
-          </button>
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+            <form onSubmit={handleJoinCodeSubmit} className="relative hidden md:flex items-center">
+              <input
+                type="text"
+                placeholder="Enter a code or link"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                className="w-64 bg-[#111120] border border-white/10 text-white placeholder-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8ab4f8] transition-all"
+              />
+              <button
+                type="submit"
+                disabled={!joinCode.trim()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 font-medium text-gray-400 hover:text-[#8ab4f8] disabled:opacity-50 text-sm transition-colors"
+              >
+                Join
+              </button>
+            </form>
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-primary-600/20">
+              <Plus className="w-4 h-4" />
+              New Meeting
+            </button>
+          </div>
         </div>
 
         {/* ── Search + Filter ── */}
@@ -141,8 +168,7 @@ export default function DashboardPage() {
           <div className="flex gap-1.5 p-1 bg-[#111120] border border-white/8 rounded-xl">
             {['all', 'public', 'private'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
-                  filter === f ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${filter === f ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
                 {f === 'all' ? 'All' : f === 'public' ? 'Public' : 'Private'}
               </button>
             ))}
@@ -244,6 +270,21 @@ export default function DashboardPage() {
                 <input type="number" value={newRoom.maxParticipants}
                   onChange={e => setNewRoom({ ...newRoom, maxParticipants: parseInt(e.target.value) })}
                   className="input-field" min={2} max={20} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Meeting Duration</label>
+                <select
+                  value={newRoom.durationMinutes}
+                  onChange={e => setNewRoom({ ...newRoom, durationMinutes: parseInt(e.target.value) })}
+                  className="input-field"
+                >
+                  <option value={0}>No limit (manual end)</option>
+                  <option value={15}>15 minutes</option>
+                  <option value={30}>30 minutes</option>
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1.5 hours</option>
+                  <option value={120}>2 hours</option>
+                </select>
               </div>
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-white/4 hover:bg-white/6 border border-white/8 transition-all">
                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${newRoom.isPrivate ? 'bg-primary-600 border-primary-600' : 'border-white/20'}`}

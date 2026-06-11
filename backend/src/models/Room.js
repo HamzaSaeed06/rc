@@ -46,6 +46,16 @@ const roomSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Optional scheduled end — if set, room auto-ends at this time
+    scheduledEndAt: {
+      type: Date,
+      default: null,
+    },
+    // Auto-end room when last participant leaves (default: true)
+    autoEndWhenEmpty: {
+      type: Boolean,
+      default: true,
+    },
     whiteboardDrawings: {
       type: [{ type: mongoose.Schema.Types.Mixed }],
       default: [],

@@ -57,6 +57,11 @@ const removeParticipant = async (roomId, userId) => {
   const updatedRoom = await Room.findOne({ roomId });
   if (!updatedRoom) return null;
 
+  // Auto-end when empty (if enabled)
+  if (updatedRoom.autoEndWhenEmpty && updatedRoom.participants.length === 0) {
+    return { room: updatedRoom, newHost: null, emptyNow: true };
+  }
+
   // Auto-promote host if the host just left
   const isHostLeaving = updatedRoom.host.toString() === userId.toString();
 

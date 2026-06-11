@@ -1,13 +1,25 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import SimplePeer from 'simple-peer';
 import { getSocket } from '@/services/socket';
 
-const ICE_SERVERS = {
-  iceServers: [
+// ─── ICE / TURN Config (reads from .env) ────────────────────────────────────
+// Set VITE_TURN_URL, VITE_TURN_USERNAME, VITE_TURN_CREDENTIAL in .env for NAT traversal.
+// Without TURN, video may fail on corporate/restricted networks.
+function buildIceConfig() {
+  const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-  ],
-};
+  ];
+  const turnUrl = import.meta.env.VITE_TURN_URL;
+  if (turnUrl) {
+    iceServers.push({
+      urls: turnUrl,
+      username: import.meta.env.VITE_TURN_USERNAME || '',
+      credential: import.meta.env.VITE_TURN_CREDENTIAL || '',
+    });
+  }
+  return { iceServers };
+}
 
 /**
  * useWebRTC — manages peer connections, media tracks, and media-toggle signalling.
@@ -18,8 +30,13 @@ const useWebRTC = (roomId) => {
   const [localStream, setLocalStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [videoEnabled, setVideoEnabled] = useState(true);
+  // Restore last mic/cam state from localStorage so refresh keeps user preference
+  const [audioEnabled, setAudioEnabled] = useState(
+    () => localStorage.getItem('syncspace_audio_enabled') !== 'false'
+  );
+  const [videoEnabled, setVideoEnabled] = useState(
+    () => localStorage.getItem('syncspace_video_enabled') !== 'false'
+  );
   // Tracks remote peers' reported media states
   const [peerStates, setPeerStates] = useState({}); // { socketId: { audioEnabled, videoEnabled } }
 
@@ -27,19 +44,107 @@ const useWebRTC = (roomId) => {
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
 
+  const audioRef = useRef(audioEnabled);
+  const videoRef = useRef(videoEnabled);
+
+  useEffect(() => { audioRef.current = audioEnabled; }, [audioEnabled]);
+  useEffect(() => { videoRef.current = videoEnabled; }, [videoEnabled]);
+
   // ─── Local Stream ────────────────────────────────────────────────────────────
 
   const getLocalStream = useCallback(async (video = true, audio = true) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video, audio });
+      const savedVideoId = localStorage.getItem('syncspace_cam_id');
+      const savedAudioId = localStorage.getItem('syncspace_mic_id');
+
+      const constraints = {
+        video: video ? (savedVideoId ? { deviceId: { exact: savedVideoId } } : true) : false,
+        audio: audio ? (savedAudioId ? { deviceId: { exact: savedAudioId } } : true) : false,
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // Apply saved mute/cam state immediately so refresh feels seamless
+      const savedAudio = localStorage.getItem('syncspace_audio_enabled');
+      const savedVideo = localStorage.getItem('syncspace_video_enabled');
+      if (savedAudio === 'false') {
+        stream.getAudioTracks().forEach(t => { t.enabled = false; });
+        setAudioEnabled(false);
+      }
+      if (savedVideo === 'false') {
+        stream.getVideoTracks().forEach(t => { t.enabled = false; });
+        setVideoEnabled(false);
+      }
+
       localStreamRef.current = stream;
       setLocalStream(stream);
       return stream;
     } catch (err) {
       console.error('[WebRTC] getUserMedia error:', err);
-      throw err;
+      // Fallback in case the saved device was unplugged
+      if (err.name === 'OverconstrainedError' || err.name === 'NotFoundError') {
+        localStorage.removeItem('syncspace_cam_id');
+        localStorage.removeItem('syncspace_mic_id');
+        console.warn('Saved devices not found, falling back to defaults.');
+        const fbStream = await navigator.mediaDevices.getUserMedia({ video, audio });
+        localStreamRef.current = fbStream;
+        setLocalStream(fbStream);
+        return fbStream;
+      }
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        throw new Error('Camera/microphone access was denied. Please allow permissions in your browser and refresh.');
+      }
+      if (err.name === 'DevicesNotFoundError') {
+        throw new Error('No camera or microphone found. Please connect a device and try again.');
+      }
+      if (err.name === 'NotReadableError') {
+        throw new Error('Camera or microphone is already in use by another application.');
+      }
+      throw new Error('Could not access camera/microphone. Please check your device settings.');
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Live Device Switching ───────────────────────────────────────────────────
+
+  const switchDevice = useCallback(async (type, deviceId) => {
+    if (!localStreamRef.current) return;
+    try {
+      const constraints = type === 'video'
+        ? { video: { deviceId: { exact: deviceId } }, audio: false }
+        : { video: false, audio: { deviceId: { exact: deviceId } } };
+
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const newTrack = type === 'video' ? newStream.getVideoTracks()[0] : newStream.getAudioTracks()[0];
+      const oldTrack = type === 'video' ? localStreamRef.current.getVideoTracks()[0] : localStreamRef.current.getAudioTracks()[0];
+
+      if (oldTrack) {
+        oldTrack.stop();
+        localStreamRef.current.removeTrack(oldTrack);
+      }
+      localStreamRef.current.addTrack(newTrack);
+
+      // Force state update to re-render local VideoTile
+      setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+      // Replace track for all active peer connections seamlessly mid-call
+      Object.values(peersRef.current).forEach(({ peer }) => {
+        if (oldTrack && peer.streams[0]) {
+          peer.replaceTrack(oldTrack, newTrack, peer.streams[0]);
+        }
+      });
+
+      // Save user preference
+      localStorage.setItem(`syncspace_${type === 'video' ? 'cam' : 'mic'}_id`, deviceId);
+
+      // Keep mute state synced with the new track
+      if (type === 'audio') newTrack.enabled = audioEnabled;
+      if (type === 'video') newTrack.enabled = videoEnabled;
+
+    } catch (err) {
+      console.error('[WebRTC] switchDevice error:', err);
+      throw new Error(`Could not switch ${type} device.`);
+    }
+  }, [audioEnabled, videoEnabled]);
 
   // ─── Peer Creation ───────────────────────────────────────────────────────────
 
@@ -49,7 +154,7 @@ const useWebRTC = (roomId) => {
       initiator,
       trickle: true,
       stream,
-      config: ICE_SERVERS,
+      config: buildIceConfig(),
     });
 
     peer.on('signal', (signal) => {
@@ -60,6 +165,12 @@ const useWebRTC = (roomId) => {
       } else {
         socket.emit('webrtc:ice-candidate', { targetSocketId, candidate: signal });
       }
+    });
+
+    peer.on('connect', () => {
+      // Send our actual states so this specific peer knows immediately
+      socket.emit('media:toggle', { roomId, type: 'audio', enabled: audioRef.current });
+      socket.emit('media:toggle', { roomId, type: 'video', enabled: videoRef.current });
     });
 
     peer.on('stream', (remoteStream) => {
@@ -164,6 +275,7 @@ const useWebRTC = (roomId) => {
     if (track) {
       track.enabled = !track.enabled;
       setAudioEnabled(track.enabled);
+      localStorage.setItem('syncspace_audio_enabled', String(track.enabled));
       const socket = getSocket();
       socket?.emit('media:toggle', { roomId, type: 'audio', enabled: track.enabled });
     }
@@ -175,6 +287,7 @@ const useWebRTC = (roomId) => {
     if (track) {
       track.enabled = !track.enabled;
       setVideoEnabled(track.enabled);
+      localStorage.setItem('syncspace_video_enabled', String(track.enabled));
       const socket = getSocket();
       socket?.emit('media:toggle', { roomId, type: 'video', enabled: track.enabled });
     }
@@ -292,6 +405,7 @@ const useWebRTC = (roomId) => {
     startScreenShare,
     stopScreenShare,
     cleanup,
+    switchDevice,
   };
 };
 

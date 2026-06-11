@@ -85,8 +85,13 @@ export default function VideoTile({
 
   return (
     <div
-      className={`relative bg-dark-850 rounded-xl overflow-hidden w-full h-full flex items-center justify-center group transition-all duration-300 ${isSpeakingActive ? 'speaking-ring' : ''}`}
-      style={!isSpeakingActive && isPinned ? { boxShadow: `0 0 0 3px ${color.bg}` } : {}}
+      className="relative bg-[#3c4043] rounded-2xl overflow-hidden w-full h-full flex items-center justify-center group transition-all duration-300"
+      style={{
+        boxShadow: (isSpeakingActive && isVideoActive)
+          ? `0 0 0 3px ${color.bg}, 0 0 16px 4px ${color.bg}40`
+          : isPinned ? `0 0 0 3px ${color.bg}` : 'none',
+        animation: (isSpeakingActive && isVideoActive) ? 'speakingPulse 1.5s ease-in-out infinite' : 'none'
+      }}
     >
       {/* Video element */}
       <video
@@ -110,16 +115,23 @@ export default function VideoTile({
       {/* Avatar fallback */}
       {!isVideoActive && (
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3"
-          style={{ background: `linear-gradient(135deg, ${color.bg}22, #0f0f15)` }}
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#3c4043]"
         >
           <div
-            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl font-bold select-none shadow-xl border-2"
-            style={{ background: color.bg, borderColor: `${color.bg}80`, color: color.text }}
+            className="rounded-full flex items-center justify-center font-bold select-none transition-all duration-300"
+            style={{
+              width: 'var(--av-size)',
+              height: 'var(--av-size)',
+              fontSize: 'calc(var(--av-size) * 0.45)', // Dynamic font size based on container
+              '--av-size': 'min(120px, 40vw)', // Responsive max size
+              background: color.bg,
+              color: color.text,
+              boxShadow: isSpeakingActive ? `0 0 0 6px ${color.bg}60, 0 0 20px ${color.bg}40` : undefined
+            }}
           >
             {user?.name ? user.name.charAt(0).toUpperCase() : '?'}
           </div>
-          <span className="text-sm font-medium text-gray-300 tracking-wide">
+          <span className="text-sm font-medium text-gray-300 tracking-wide mt-2">
             {isLocal ? 'You' : user?.name || 'Participant'}
           </span>
         </div>
@@ -127,113 +139,103 @@ export default function VideoTile({
 
       {/* Hand raised badge */}
       {isHandRaised && (
-        <div className="absolute top-2 right-2 z-20 animate-bounce-soft">
-          <div className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1 border border-amber-400">
-            <Hand className="w-3 h-3" />
-            <span>✋</span>
+        <div className="absolute top-3 left-3 z-20 animate-bounce">
+          <div className="bg-amber-500 text-white px-3 py-1.5 rounded-full shadow-2xl flex items-center justify-center gap-1.5 border border-amber-400 select-none">
+            <Hand className="w-4 h-4" />
+            <span className="text-xs font-bold leading-none">{isLocal ? 'You' : user?.name?.split(' ')[0] || 'Participant'}</span>
           </div>
-        </div>
-      )}
-
-      {/* Speaking pulse */}
-      {isSpeakingActive && (
-        <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-dark-900/70 backdrop-blur-sm px-2 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
-          <span className="text-[10px] text-green-400 font-medium">Speaking</span>
         </div>
       )}
 
       {/* Hover controls */}
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-2 right-2 flex items-center gap-1 z-30">
-        {!isLocal ? (
-          <div className="flex items-center gap-1 bg-dark-900/85 backdrop-blur-sm p-1 rounded-lg border border-dark-600 shadow-lg">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setIsLocallyMuted((v) => !v); }}
-              className={`p-1.5 rounded-md hover:bg-dark-700 transition-colors ${isLocallyMuted ? 'text-red-400' : 'text-gray-300'}`}
-              title={isLocallyMuted ? 'Unmute locally' : 'Mute locally'}
-            >
-              {isLocallyMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            </button>
-            {isCurrentUserHost && onMuteParticipant && !showMicOff && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onMuteParticipant(); }}
-                className="p-1.5 rounded-md hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-colors"
-                title="Mute for everyone"
-              >
-                <MicOff className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {onPin && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onPin(); }}
-                className={`p-1.5 rounded-md hover:bg-dark-700 transition-colors ${isPinned ? 'text-primary-400' : 'text-gray-300'}`}
-                title={isPinned ? 'Unpin' : 'Pin to stage'}
-              >
-                {isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-1 bg-dark-900/85 backdrop-blur-sm p-1 rounded-lg border border-dark-600 shadow-lg">
-            {onToggleAudio && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onToggleAudio(); }}
-                className={`p-1.5 rounded-md hover:bg-dark-700 transition-colors ${audioEnabled ? 'text-gray-300' : 'text-red-400'}`}
-                title={audioEnabled ? 'Mute mic' : 'Unmute mic'}
-              >
-                {audioEnabled ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-              </button>
-            )}
-            {onToggleVideo && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onToggleVideo(); }}
-                className={`p-1.5 rounded-md hover:bg-dark-700 transition-colors ${videoEnabled ? 'text-gray-300' : 'text-red-400'}`}
-                title={videoEnabled ? 'Stop camera' : 'Start camera'}
-              >
-                {videoEnabled ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
-              </button>
-            )}
-            {onPin && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onPin(); }}
-                className={`p-1.5 rounded-md hover:bg-dark-700 transition-colors ${isPinned ? 'text-primary-400' : 'text-gray-300'}`}
-                title={isPinned ? 'Unpin' : 'Pin to stage'}
-              >
-                {isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Bottom info bar */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 px-2 py-1.5 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-semibold shadow truncate max-w-[120px]"
-            style={{ background: `${color.bg}cc`, color: color.text }}
-          >
-            {isLocal ? `You${isHost ? ' · Host' : ''}` : user?.name || 'Participant'}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-3 right-3 flex items-center gap-1.5 z-30">
+        <div className="flex items-center gap-1 bg-dark-900/85 backdrop-blur-sm px-2 py-1.5 rounded-xl border border-dark-600 shadow-lg">
+          <span className="text-xs font-semibold text-white mr-1 px-1 border-r border-white/20">
+            {isLocal ? 'You' : user?.name || 'Participant'}
           </span>
-          {isHost && !isLocal && <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" />}
-        </div>
-        <div className="flex-shrink-0">
-          {showMicOff ? (
-            <span className="bg-red-600/90 p-1 rounded-full shadow flex">
-              <MicOff className="w-2.5 h-2.5 text-white" />
-            </span>
+          {!isLocal ? (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsLocallyMuted((v) => !v); }}
+                className={`p-2 rounded-lg hover:bg-dark-700 transition-colors ${isLocallyMuted ? 'text-red-400' : 'text-gray-300'}`}
+                title={isLocallyMuted ? 'Unmute locally' : 'Mute locally'}
+              >
+                {isLocallyMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              {isCurrentUserHost && onMuteParticipant && !showMicOff && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onMuteParticipant(); }}
+                  className="p-2 rounded-lg hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-colors"
+                  title="Mute for everyone"
+                >
+                  <MicOff className="w-4 h-4" />
+                </button>
+              )}
+              {onPin && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onPin(); }}
+                  className={`p-2 rounded-lg hover:bg-dark-700 transition-colors ${isPinned ? 'text-primary-400' : 'text-gray-300'}`}
+                  title={isPinned ? 'Unpin' : 'Pin to stage'}
+                >
+                  {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                </button>
+              )}
+            </>
           ) : (
-            <span className="bg-dark-800/60 p-1 rounded-full">
-              <Mic className="w-2.5 h-2.5 text-green-400" />
-            </span>
+            <>
+              {onToggleAudio && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onToggleAudio(); }}
+                  className={`p-2 rounded-lg hover:bg-dark-700 transition-colors ${audioEnabled ? 'text-gray-300' : 'text-red-400'}`}
+                  title={audioEnabled ? 'Mute mic' : 'Unmute mic'}
+                >
+                  {audioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                </button>
+              )}
+              {onToggleVideo && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onToggleVideo(); }}
+                  className={`p-2 rounded-lg hover:bg-dark-700 transition-colors ${videoEnabled ? 'text-gray-300' : 'text-red-400'}`}
+                  title={videoEnabled ? 'Stop camera' : 'Start camera'}
+                >
+                  {videoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                </button>
+              )}
+              {onPin && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onPin(); }}
+                  className={`p-2 rounded-lg hover:bg-dark-700 transition-colors ${isPinned ? 'text-primary-400' : 'text-gray-300'}`}
+                  title={isPinned ? 'Unpin' : 'Pin to stage'}
+                >
+                  {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                </button>
+              )}
+            </>
           )}
         </div>
+      </div>
+
+      {/* Bottom info pill */}
+      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-md max-w-[calc(100%-24px)]">
+        {showMicOff ? (
+          <div className="bg-red-500 rounded-full p-0.5 shadow shrink-0">
+            <MicOff className="w-3.5 h-3.5 text-white" />
+          </div>
+        ) : isSpeakingActive ? (
+          <div className="bg-blue-500 rounded-full p-0.5 shadow shrink-0 animate-pulse">
+            <Volume2 className="w-3.5 h-3.5 text-white" />
+          </div>
+        ) : null}
+        <span className="text-xs sm:text-sm font-medium text-white truncate shadow-sm tracking-wide">
+          {isLocal ? `You${isHost ? ' (Host)' : ''}` : user?.name || 'Participant'}
+        </span>
+        {isHost && !isLocal && <Crown className="w-3 h-3 text-amber-400 shrink-0 ml-0.5" />}
       </div>
     </div>
   );

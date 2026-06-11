@@ -3,14 +3,11 @@ const logger = require('../utils/logger');
 
 const connectDB = async () => {
   try {
-    let uri = process.env.MONGO_URI;
+    const uri = process.env.MONGO_URI;
 
     if (!uri) {
-      logger.warn('MONGO_URI not set — starting embedded MongoDB (development only)');
-      const { MongoMemoryServer } = require('mongodb-memory-server');
-      const mongod = await MongoMemoryServer.create();
-      uri = mongod.getUri();
-      logger.info(`Embedded MongoDB started at: ${uri}`);
+      logger.error('MONGO_URI is not set in environment variables. Please add your MongoDB Atlas connection string to .env');
+      process.exit(1);
     }
 
     const conn = await mongoose.connect(uri, {

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Video, Mail, Lock, Loader2 } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(form);
-      navigate('/dashboard');
+      navigate(location.state?.from || '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {

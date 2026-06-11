@@ -18,7 +18,7 @@ const AppError = require('./utils/AppError');
 
 const app = express();
 
-// Trust proxy (required for Replit / reverse-proxy environments)
+// Trust proxy (required for reverse-proxy / deployment environments)
 app.set('trust proxy', 1);
 
 // ─── Security Middleware ───────────────────────────────────────────────────────
