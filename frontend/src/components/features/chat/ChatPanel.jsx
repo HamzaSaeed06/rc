@@ -1,12 +1,11 @@
 /**
- * ChatPanel — "In-call messages" style
- * Colored circle avatars, sender name above bubble,
- * reactions, file uploads, typing indicator.
+ * ChatPanel — Google Chat / Slack style
+ * Avatar on left, name + time on same row, plain text below (no bubbles)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Send, Paperclip, Loader2, Download, CheckCheck,
+  Send, Paperclip, Loader2, Download,
   FileText, FileSpreadsheet, FileArchive, Film, Image as ImageIcon, X as XIcon,
 } from 'lucide-react';
 import { getSocket } from '@/services/socket';
@@ -49,7 +48,7 @@ function FileTypeIcon({ mimeType }) {
   if (mimeType?.includes('spreadsheet') || mimeType?.includes('excel'))
     return <FileSpreadsheet className="w-4 h-4 text-green-400" />;
   if (mimeType?.includes('zip')) return <FileArchive className="w-4 h-4 text-yellow-400" />;
-  return <FileText className="w-4 h-4 text-gray-400" />;
+  return <FileText className="w-4 h-4 text-[#9aa0a6]" />;
 }
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
@@ -62,31 +61,32 @@ function Lightbox({ src, onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+      onClick={onClose}>
       <img src={src} alt="Preview"
         className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
         onClick={(e) => e.stopPropagation()} />
       <button onClick={onClose}
-        className="absolute top-4 right-4 bg-[#202124] border border-white/10 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-[#22223a] transition-colors">
+        className="absolute top-4 right-4 bg-[#3c4043] text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-[#5f6368] transition-colors">
         <XIcon className="w-5 h-5" />
       </button>
     </div>
   );
 }
 
-// ─── File Bubble ──────────────────────────────────────────────────────────────
+// ─── File attachment card ─────────────────────────────────────────────────────
 
-function FileBubble({ file, own, baseUrl }) {
+function FileCard({ file, baseUrl }) {
   const [lightbox, setLightbox] = useState(false);
   const fileUrl = file.url?.startsWith('http') ? file.url : `${baseUrl}${file.url}`;
 
   if (isImage(file.mimeType)) {
     return (
       <>
-        <div className="cursor-pointer rounded-xl overflow-hidden border border-white/10 hover:opacity-90 transition-opacity"
+        <div className="mt-2 cursor-pointer rounded-xl overflow-hidden hover:opacity-90 transition-opacity inline-block"
           onClick={() => setLightbox(true)}>
           <img src={fileUrl} alt={file.originalName}
-            className="max-w-[200px] max-h-[180px] object-cover block" />
+            className="max-w-[220px] max-h-[160px] object-cover block rounded-xl" />
         </div>
         {lightbox && <Lightbox src={fileUrl} onClose={() => setLightbox(false)} />}
       </>
@@ -95,7 +95,7 @@ function FileBubble({ file, own, baseUrl }) {
 
   if (isVideo(file.mimeType)) {
     return (
-      <div className="rounded-xl overflow-hidden border border-white/10">
+      <div className="mt-2 rounded-xl overflow-hidden border border-white/10">
         <video src={fileUrl} controls className="max-w-[220px] block" />
       </div>
     );
@@ -103,14 +103,13 @@ function FileBubble({ file, own, baseUrl }) {
 
   return (
     <a href={fileUrl} download={file.originalName} target="_blank" rel="noreferrer"
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors
-        ${own ? 'border-white/15 hover:border-white/25 bg-white/8' : 'border-white/10 hover:border-white/15 bg-white/6'}`}>
+      className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/4 hover:bg-white/6 transition-colors inline-flex max-w-[220px]">
       <FileTypeIcon mimeType={file.mimeType} />
       <div className="min-w-0">
-        <p className="text-sm font-medium text-white truncate max-w-[140px]">{file.originalName}</p>
-        <p className="text-xs text-white/50">{formatBytes(file.size)}</p>
+        <p className="text-sm font-medium text-[#e8eaed] truncate max-w-[140px]">{file.originalName}</p>
+        <p className="text-xs text-[#9aa0a6]">{formatBytes(file.size)}</p>
       </div>
-      <Download className="w-4 h-4 text-white/40 flex-shrink-0" />
+      <Download className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
     </a>
   );
 }
@@ -119,21 +118,18 @@ function FileBubble({ file, own, baseUrl }) {
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
-function ReactionBar({ messageId, reactions, userId, onToggle, own }) {
+function ReactionBar({ messageId, userId, onToggle }) {
   return (
-    <div className={`absolute -top-9 ${own ? 'right-0' : 'left-0'} z-20
+    <div className="absolute -top-8 left-10 z-20
       opacity-0 group-hover:opacity-100 transition-opacity duration-150
-      flex items-center gap-0.5 bg-[#1e1e2e] border border-white/12 rounded-full px-2 py-1.5 shadow-xl backdrop-blur-sm`}>
-      {EMOJI_LIST.map((emoji) => {
-        const reacted = reactions?.some(r => r.emoji === emoji && (r.user?._id === userId || r.user === userId));
-        return (
-          <button key={emoji} type="button"
-            onClick={() => onToggle(messageId, emoji)}
-            className={`text-base leading-none px-1 hover:scale-125 transition-transform rounded-full ${reacted ? 'bg-indigo-600/30' : ''}`}>
-            {emoji}
-          </button>
-        );
-      })}
+      flex items-center gap-0.5 bg-[#3c4043] rounded-full px-2 py-1 shadow-xl">
+      {EMOJI_LIST.map((emoji) => (
+        <button key={emoji} type="button"
+          onClick={() => onToggle(messageId, emoji)}
+          className="text-sm leading-none px-0.5 hover:scale-125 transition-transform rounded-full">
+          {emoji}
+        </button>
+      ))}
     </div>
   );
 }
@@ -148,15 +144,15 @@ function ReactionPills({ reactions, userId, onToggle, messageId }) {
   }, {});
 
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div className="flex flex-wrap gap-1 mt-1.5 ml-10">
       {Object.entries(grouped).map(([emoji, { count, users }]) => {
         const reacted = reactions.some(r => r.emoji === emoji && (r.user?._id === userId || r.user === userId));
         return (
           <button key={emoji} type="button" onClick={() => onToggle(messageId, emoji)} title={users.join(', ')}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-all
               ${reacted
-                ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-200'
-                : 'bg-white/6 border-white/10 text-gray-400 hover:border-white/20'}`}>
+                ? 'bg-[#8ab4f8]/20 border-[#8ab4f8]/50 text-[#8ab4f8]'
+                : 'bg-white/6 border-white/10 text-[#9aa0a6] hover:border-white/20'}`}>
             <span>{emoji}</span>
             <span className="font-semibold">{count}</span>
           </button>
@@ -170,12 +166,12 @@ function ReactionPills({ reactions, userId, onToggle, messageId }) {
 
 function DateDivider({ date }) {
   return (
-    <div className="flex items-center gap-3 my-4 px-2">
-      <div className="flex-1 h-px bg-white/6" />
-      <span className="text-[10px] text-gray-600 font-medium px-3 py-1 bg-[#15151e] rounded-full border border-white/6 whitespace-nowrap">
+    <div className="flex items-center gap-3 my-4 px-4">
+      <div className="flex-1 h-px bg-white/8" />
+      <span className="text-[10px] text-[#9aa0a6] font-medium whitespace-nowrap px-1">
         {formatDateDivider(date)}
       </span>
-      <div className="flex-1 h-px bg-white/6" />
+      <div className="flex-1 h-px bg-white/8" />
     </div>
   );
 }
@@ -190,13 +186,13 @@ function TypingIndicator({ typingUsers }) {
       : 'Several people are typing';
 
   return (
-    <div className="flex items-center gap-2.5 px-4 py-2 animate-fade-in">
+    <div className="flex items-center gap-2 px-4 py-1">
       <div className="typing-dots">
         <span className="typing-dot" />
         <span className="typing-dot" />
         <span className="typing-dot" />
       </div>
-      <span className="text-[11px] text-gray-500 italic">{label}</span>
+      <span className="text-[11px] text-[#9aa0a6] italic">{label}</span>
     </div>
   );
 }
@@ -205,15 +201,15 @@ function TypingIndicator({ typingUsers }) {
 
 function SystemMessage({ content }) {
   return (
-    <div className="flex items-center justify-center py-1.5">
-      <span className="text-[11px] text-gray-600 italic bg-white/4 px-3 py-1 rounded-full border border-white/6">
+    <div className="flex items-center justify-center py-1.5 px-4">
+      <span className="text-[11px] text-[#9aa0a6] italic bg-white/4 px-3 py-1 rounded-full">
         {content}
       </span>
     </div>
   );
 }
 
-// ─── Main ChatPanel ─────────────────────────────────────────────────────────
+// ─── Main ChatPanel ───────────────────────────────────────────────────────────
 
 export default function ChatPanel({ roomId }) {
   const { user } = useAuthStore();
@@ -232,14 +228,12 @@ export default function ChatPanel({ roomId }) {
   const inputRef = useRef(null);
 
   const baseUrl = (import.meta.env.VITE_API_URL || '/api/v1').replace('/api/v1', '');
-
   const isOwn = useCallback((msg) => msg.sender?._id === user?._id || msg.sender === user?._id, [user]);
 
   useEffect(() => {
     return () => { if (filePreview?.startsWith('blob:')) URL.revokeObjectURL(filePreview); };
   }, [filePreview]);
 
-  // Chat history
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -256,7 +250,6 @@ export default function ChatPanel({ roomId }) {
     return () => socket.off('chat:history', onHistory);
   }, [roomId]);
 
-  // Incoming messages
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -277,7 +270,6 @@ export default function ChatPanel({ roomId }) {
     return () => socket.off('chat:message', onMessage);
   }, [roomId]);
 
-  // Reactions
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -288,7 +280,6 @@ export default function ChatPanel({ roomId }) {
     return () => socket.off('chat:reacted', onReacted);
   }, []);
 
-  // Typing
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -303,12 +294,9 @@ export default function ChatPanel({ roomId }) {
     return () => socket.off('chat:typing', onTyping);
   }, []);
 
-  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUsers]);
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -385,7 +373,7 @@ export default function ChatPanel({ roomId }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Build render list
+  // Build render list with date dividers
   const renderedMessages = [];
   let lastDate = null;
   messages.forEach((msg, idx) => {
@@ -401,16 +389,17 @@ export default function ChatPanel({ roomId }) {
 
   return (
     <div className="flex flex-col h-full bg-[#282a2d]">
+
       {/* Messages list */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar space-y-0.5">
+      <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center pb-8">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center border border-indigo-500/20">
-              <span className="text-2xl">💬</span>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+            <div className="w-12 h-12 rounded-full bg-[#3c4043] flex items-center justify-center">
+              <span className="text-xl">💬</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-400">Start the conversation</p>
-              <p className="text-xs text-gray-600 mt-1">Messages are end-to-end encrypted.</p>
+              <p className="text-sm font-semibold text-[#e8eaed]">No messages yet</p>
+              <p className="text-xs text-[#9aa0a6] mt-1">Messages are end-to-end encrypted</p>
             </div>
           </div>
         )}
@@ -421,127 +410,119 @@ export default function ChatPanel({ roomId }) {
           const own = isOwn(msg);
           const isPending = msg._pending;
           const senderColor = getParticipantColor(msg.sender?._id || msg.sender || 'default');
+          const senderName = msg.sender?.name || 'Unknown';
+          const initials = senderName.charAt(0).toUpperCase();
 
           if (msg.type === 'system') return <SystemMessage key={key} content={msg.content} />;
 
           return (
-            <div key={key} className={`flex gap-2.5 mb-2 relative group ${own ? 'flex-row-reverse' : 'flex-row'}`}>
-              {/* Avatar (others only) */}
-              {!own && (
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 self-end mb-0.5 shadow-sm"
-                  style={{ background: senderColor.bg, color: senderColor.text }}
-                  title={msg.sender?.name}>
-                  {msg.sender?.name?.charAt(0).toUpperCase() || '?'}
-                </div>
-              )}
+            <div key={key} className="group relative flex items-start gap-3 px-4 py-2 hover:bg-white/4 transition-colors">
+              {/* Avatar circle */}
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5 select-none"
+                style={{ background: senderColor.bg, color: senderColor.text }}
+                title={senderName}>
+                {initials}
+              </div>
 
-              {/* Content */}
-              <div className={`max-w-[80%] flex flex-col gap-0.5 ${own ? 'items-end' : 'items-start'}`}>
-                {/* Sender name */}
-                {!own && (
-                  <span className="text-[11px] font-semibold px-1 leading-none mb-1"
-                    style={{ color: senderColor.bg }}>
-                    {msg.sender?.name}
+              {/* Message content */}
+              <div className="flex-1 min-w-0">
+                {/* Name + time row */}
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <span className="text-sm font-semibold leading-none"
+                    style={{ color: own ? '#8ab4f8' : senderColor.bg }}>
+                    {own ? 'You' : senderName}
                   </span>
-                )}
-
-                {/* Bubble */}
-                <div className={`relative px-3 py-2.5 text-sm shadow-sm transition-all
-                  ${own
-                    ? `rounded-2xl rounded-br-none ${isPending ? 'opacity-60' : ''}`
-                    : 'rounded-2xl rounded-bl-none bg-[#1e1e2e] border border-white/8 text-gray-100'}`}
-                  style={own ? { background: isPending ? '#1a2740' : '#1e3a5f', color: '#e2efff', borderRadius: '18px 18px 4px 18px' } : { borderRadius: '4px 18px 18px 18px' }}>
-
-                  {/* Hover reaction bar */}
-                  {!isPending && (
-                    <ReactionBar messageId={msg._id} reactions={msg.reactions}
-                      userId={user?._id} onToggle={handleToggleReaction} own={own} />
-                  )}
-
-                  {msg.type === 'file' ? (
-                    <div className="flex flex-col gap-1.5">
-                      <FileBubble file={msg.file} own={own} baseUrl={baseUrl} />
-                      {msg.content && <span className="text-xs text-white/75 break-words whitespace-pre-wrap mt-1">{msg.content}</span>}
-                    </div>
-                  ) : (
-                    <span className="break-words whitespace-pre-wrap leading-relaxed">{msg.content}</span>
-                  )}
-
-                  {/* Timestamp + tick */}
-                  <div className={`flex items-center gap-1 mt-1 ${own ? 'justify-end' : 'justify-start'}`}>
-                    <span className={`text-[10px] ${own ? 'text-blue-200/50' : 'text-gray-600'}`}>
-                      {formatTime(msg.createdAt)}
-                    </span>
-                    {own && (
-                      <CheckCheck className={`w-3 h-3 flex-shrink-0 ${isPending ? 'text-blue-300/40' : 'text-blue-300'}`} />
-                    )}
-                  </div>
+                  <span className="text-[10px] text-[#9aa0a6] leading-none">
+                    {formatTime(msg.createdAt)}
+                    {isPending && <span className="ml-1 italic">sending…</span>}
+                  </span>
                 </div>
+
+                {/* Message text */}
+                {msg.type === 'file' ? (
+                  <div>
+                    {msg.content && (
+                      <p className="text-sm text-[#e8eaed] leading-relaxed whitespace-pre-wrap break-words mb-1">
+                        {msg.content}
+                      </p>
+                    )}
+                    <FileCard file={msg.file} baseUrl={baseUrl} />
+                  </div>
+                ) : (
+                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${isPending ? 'text-[#9aa0a6]' : 'text-[#e8eaed]'}`}>
+                    {msg.content}
+                  </p>
+                )}
 
                 {/* Reaction pills */}
                 <ReactionPills reactions={msg.reactions} userId={user?._id}
                   onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
+
+              {/* Hover reaction bar */}
+              {!isPending && (
+                <ReactionBar messageId={msg._id} userId={user?._id} onToggle={handleToggleReaction} />
+              )}
             </div>
           );
         })}
 
         <TypingIndicator typingUsers={typingUsers} />
-        <div ref={bottomRef} className="h-1" />
+        <div ref={bottomRef} className="h-2" />
       </div>
 
       {/* File preview */}
       {filePreview && (
-        <div className="mx-3 mb-2 p-2.5 rounded-xl bg-white/6 border border-white/10 flex items-center justify-between gap-2 animate-fade-in">
+        <div className="mx-3 mb-2 p-2.5 rounded-xl bg-[#3c4043] flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             {selectedFile?.type.startsWith('image/') ? (
               <img src={filePreview} alt="preview"
-                className="w-10 h-10 rounded-lg object-cover border border-white/10 flex-shrink-0" />
+                className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
             ) : (
               <div className="w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center flex-shrink-0">
                 <FileTypeIcon mimeType={selectedFile?.type} />
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate max-w-[160px]">{selectedFile?.name}</p>
-              <p className="text-[10px] text-gray-500">{formatBytes(selectedFile?.size)}</p>
+              <p className="text-xs font-semibold text-[#e8eaed] truncate max-w-[150px]">{selectedFile?.name}</p>
+              <p className="text-[10px] text-[#9aa0a6]">{formatBytes(selectedFile?.size)}</p>
             </div>
           </div>
           <button type="button" onClick={clearFile}
-            className="p-1.5 rounded-full bg-white/8 hover:bg-white/15 text-gray-400 hover:text-white flex-shrink-0 transition-colors">
+            className="p-1.5 rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white flex-shrink-0 transition-colors">
             <XIcon className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Input area */}
-      <div className="px-3 pb-3 pt-2 border-t border-white/6">
-        <div className="flex items-end gap-2 bg-[#1e1e2e] rounded-2xl px-3 py-2 border border-white/8 focus-within:border-indigo-500/40 transition-colors">
-          {/* Attach */}
+      <div className="px-3 pb-3 pt-1">
+        <div className="flex items-end gap-2 bg-[#3c4043] rounded-2xl px-3 py-2 focus-within:ring-1 focus-within:ring-[#8ab4f8]/40 transition-all">
           <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
           <button type="button" onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-all flex-shrink-0 self-center">
+            className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-white hover:bg-white/8 transition-all flex-shrink-0 self-center">
             <Paperclip className="w-4 h-4" />
           </button>
 
-          {/* Text input */}
-          <textarea ref={inputRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
-            placeholder="Send a message…"
+          <textarea
+            ref={inputRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
+            placeholder="Send a message to everyone…"
             rows={1}
-            className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 resize-none focus:outline-none py-1 min-h-[28px] max-h-[100px] leading-relaxed"
+            className="flex-1 bg-transparent text-sm text-[#e8eaed] placeholder-[#9aa0a6] resize-none focus:outline-none py-1.5 min-h-[28px] max-h-[100px] leading-relaxed"
             style={{ height: 'auto' }}
             onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`; }}
           />
 
-          {/* Send */}
-          <button type="button" onClick={sendMessage}
-            disabled={uploading || (!input.trim() && !selectedFile)}
-            className="p-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all flex-shrink-0 self-center shadow-md">
-            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          <button type="button" onClick={sendMessage} disabled={uploading || (!input.trim() && !selectedFile)}
+            className="p-2 rounded-xl transition-all flex-shrink-0 self-center disabled:opacity-30
+              bg-[#8ab4f8] hover:bg-[#aecbfa] disabled:bg-[#3c4043] text-[#202124] disabled:text-[#9aa0a6]">
+            {uploading
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Send className="w-4 h-4" />}
           </button>
         </div>
-        <p className="text-[10px] text-gray-700 text-center mt-1.5">End-to-end encrypted · Press Enter to send</p>
+        <p className="text-[10px] text-[#9aa0a6] text-center mt-1.5">Press Enter to send · Shift+Enter for new line</p>
       </div>
     </div>
   );

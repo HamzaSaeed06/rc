@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getSocket } from '@/services/socket';
 import useWebRTC from '@/hooks/useWebRTC';
+import useAudioAnalyser from '@/hooks/useAudioAnalyser';
 import useAuthStore from '@/store/slices/authStore';
 import VideoTile from '@/components/features/room/VideoTile';
 import ChatPanel from '@/components/features/chat/ChatPanel';
@@ -462,22 +463,21 @@ function FilesPanel({ roomId, onFileUploaded }) {
   );
 }
 
-// ─── More dropdown ────────────────────────────────────────────────────────────
-function MoreMenu({ onRecord, isRecording, onWhiteboard, onFiles, isScreenSharing, onStopShare, isHandRaised, onHandRaise, onSettings, onClose }) {
+// ─── More dropdown (centered above footer, no border) ─────────────────────────
+function MoreMenu({ onRecord, isRecording, onWhiteboard, onFiles, isScreenSharing, onStopShare, isHandRaised, onHandRaise, onClose }) {
   const items = [
-    { icon: <Circle className={`w-4 h-4 ${isRecording ? 'text-red-400 animate-pulse' : 'text-gray-300'}`} />, label: isRecording ? 'Stop Recording' : 'Record Meeting', action: onRecord },
-    { icon: <LayoutGrid className="w-4 h-4 text-gray-300" />, label: 'Open Whiteboard', action: onWhiteboard },
-    { icon: <FileText className="w-4 h-4 text-gray-300" />, label: 'Share Files', action: onFiles },
-    { icon: <Hand className="w-4 h-4 text-gray-300" />, label: isHandRaised ? 'Lower Hand' : 'Raise Hand', action: onHandRaise },
+    { icon: <Circle className={`w-4 h-4 ${isRecording ? 'text-[#ea4335] animate-pulse' : 'text-[#e8eaed]'}`} />, label: isRecording ? 'Stop Recording' : 'Record Meeting', action: onRecord },
+    { icon: <LayoutGrid className="w-4 h-4 text-[#e8eaed]" />, label: 'Open Whiteboard', action: onWhiteboard },
+    { icon: <FileText className="w-4 h-4 text-[#e8eaed]" />, label: 'Share Files', action: onFiles },
+    { icon: <Hand className="w-4 h-4 text-[#e8eaed]" />, label: isHandRaised ? 'Lower Hand' : 'Raise Hand', action: onHandRaise },
     ...(isScreenSharing ? [{ icon: <MonitorOff className="w-4 h-4 text-orange-400" />, label: 'Stop Sharing Screen', action: onStopShare }] : []),
-    { icon: <Settings className="w-4 h-4 text-gray-300" />, label: 'Settings', action: onSettings },
   ];
 
   return (
-    <div className="fixed bottom-20 right-6 w-56 bg-[#303134] border border-white/12 rounded-2xl shadow-2xl overflow-hidden z-[400] animate-slide-up">
+    <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 w-60 bg-[#282a2d] rounded-2xl shadow-2xl overflow-hidden z-[400] animate-slide-up">
       {items.map((item, i) => (
         <button key={i} onClick={() => { item.action?.(); onClose(); }}
-          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-200 hover:bg-white/8 transition-colors text-left">
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-[#e8eaed] hover:bg-white/8 transition-colors text-left">
           {item.icon}
           <span className="font-medium">{item.label}</span>
         </button>
@@ -575,52 +575,96 @@ function CtrlBtn({ onClick, active, danger, title, children, badge }) {
   );
 }
 
-// ─── Device picker button (Mic/Cam with up-arrow, Google Meet style) ──────────
-function DeviceBtn({ onToggle, danger, active, title, children, badge, devices, currentId, onSelectDevice }) {
+// ─── Mic button group — [dots/bars][MIC] (Google Meet style) ─────────────────
+function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSelectDevice }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-
   useEffect(() => {
     if (!open) return;
-    const handle = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, [open]);
-
   return (
-    <div ref={ref} className="relative flex flex-col items-center group/dev">
-      {/* Up-arrow for device picker — visible on hover */}
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
-        title="Select device"
-        className={`opacity-0 group-hover/dev:opacity-100 transition-all duration-150 mb-1 flex items-center gap-0.5 px-2.5 h-5 rounded-full text-[10px] font-medium
-          ${open ? 'opacity-100 bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'bg-[#3c4043] hover:bg-[#5f6368] text-white/80 hover:text-white'}`}
-      >
-        <ChevronUp className="w-3 h-3" />
+    <div ref={ref} className="relative flex items-center gap-1">
+      {/* Left: 3 dots normally, animated bars when speaking — also opens device picker */}
+      <button onClick={() => setOpen(v => !v)} title="Audio devices"
+        className={`w-10 h-10 rounded-full flex items-end justify-center gap-[3px] pb-[9px] transition-colors
+          ${open ? 'bg-[#8ab4f8]/20' : 'bg-[#3c4043] hover:bg-[#4a4d51]'}`}>
+        {isSpeaking && audioEnabled ? (
+          <>
+            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-1" />
+            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-2" />
+            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-3" />
+          </>
+        ) : (
+          <>
+            <span className="w-[5px] h-[5px] rounded-full bg-white/70" />
+            <span className="w-[5px] h-[5px] rounded-full bg-white/70" />
+            <span className="w-[5px] h-[5px] rounded-full bg-white/70" />
+          </>
+        )}
       </button>
-
-      {/* Main round button */}
-      <CtrlBtn onClick={onToggle} danger={danger} active={active} title={title} badge={badge}>
-        {children}
+      {/* Main mic toggle button */}
+      <CtrlBtn onClick={onToggle} danger={!audioEnabled} title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}>
+        {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
       </CtrlBtn>
-
-      {/* Device list popup */}
+      {/* Vertical device list above */}
       {open && (
-        <div className="absolute bottom-[calc(100%+40px)] left-1/2 -translate-x-1/2 bg-[#303134] border border-white/10 rounded-2xl shadow-2xl py-2 z-[250] min-w-[230px]">
-          <p className="px-4 py-1.5 text-[10px] text-[#9aa0a6] uppercase tracking-widest font-semibold">Select a device</p>
-          {devices.length === 0 ? (
-            <p className="px-4 py-2.5 text-xs text-[#9aa0a6]">No devices detected</p>
-          ) : devices.map(d => (
-            <button key={d.deviceId}
-              onClick={() => { onSelectDevice(d.deviceId); setOpen(false); }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-3
-                ${d.deviceId === currentId
-                  ? 'text-[#8ab4f8] bg-[#8ab4f8]/8'
-                  : 'text-[#e8eaed] hover:bg-white/8'}`}>
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.deviceId === currentId ? 'bg-[#8ab4f8]' : 'bg-transparent'}`} />
-              <span className="truncate">{d.label || 'Unknown device'}</span>
-            </button>
-          ))}
+        <div className="absolute bottom-[calc(100%+12px)] left-0 bg-[#303134] rounded-2xl shadow-2xl py-2 z-[250] min-w-[240px]">
+          <p className="px-4 py-1.5 text-[10px] text-[#9aa0a6] uppercase tracking-widest font-semibold">Microphone</p>
+          {devices.length === 0
+            ? <p className="px-4 py-3 text-sm text-[#9aa0a6]">No microphones detected</p>
+            : devices.map(d => (
+              <button key={d.deviceId} onClick={() => { onSelectDevice(d.deviceId); setOpen(false); }}
+                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3
+                  ${d.deviceId === currentId ? 'text-[#8ab4f8] bg-[#8ab4f8]/8' : 'text-[#e8eaed] hover:bg-white/8'}`}>
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.deviceId === currentId ? 'bg-[#8ab4f8]' : 'border border-white/20'}`} />
+                <span className="truncate">{d.label || 'Microphone'}</span>
+              </button>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Camera button group — [^][CAM] (Google Meet style) ─────────────────────
+function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative flex items-center gap-1">
+      {/* Left: up-arrow opens device picker */}
+      <button onClick={() => setOpen(v => !v)} title="Camera devices"
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+          ${open ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'bg-[#3c4043] hover:bg-[#4a4d51] text-white'}`}>
+        <ChevronUp className="w-4 h-4" />
+      </button>
+      {/* Main camera toggle button */}
+      <CtrlBtn onClick={onToggle} danger={!videoEnabled} title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}>
+        {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+      </CtrlBtn>
+      {/* Vertical device list above */}
+      {open && (
+        <div className="absolute bottom-[calc(100%+12px)] left-0 bg-[#303134] rounded-2xl shadow-2xl py-2 z-[250] min-w-[240px]">
+          <p className="px-4 py-1.5 text-[10px] text-[#9aa0a6] uppercase tracking-widest font-semibold">Camera</p>
+          {devices.length === 0
+            ? <p className="px-4 py-3 text-sm text-[#9aa0a6]">No cameras detected</p>
+            : devices.map(d => (
+              <button key={d.deviceId} onClick={() => { onSelectDevice(d.deviceId); setOpen(false); }}
+                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3
+                  ${d.deviceId === currentId ? 'text-[#8ab4f8] bg-[#8ab4f8]/8' : 'text-[#e8eaed] hover:bg-white/8'}`}>
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.deviceId === currentId ? 'bg-[#8ab4f8]' : 'border border-white/20'}`} />
+                <span className="truncate">{d.label || 'Camera'}</span>
+              </button>
+            ))}
         </div>
       )}
     </div>
@@ -752,6 +796,7 @@ export default function RoomPage() {
   const [showLeave, setShowLeave] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const { isSpeaking: isLocalSpeaking } = useAudioAnalyser(audioEnabled ? localStream : null);
   const [audioDevices, setAudioDevices] = useState([]);
   const [videoDevices, setVideoDevices] = useState([]);
   const [currentAudioId, setCurrentAudioId] = useState(localStorage.getItem('syncspace_mic_id') || '');
@@ -1062,10 +1107,6 @@ export default function RoomPage() {
               ${activePanel === PANELS.files ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
             <FileText className="w-5 h-5" />
           </button>
-          <button onClick={() => setShowSettings(true)} title="Settings"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed] transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
           <div ref={moreRef}>
             <button onClick={() => setShowMore(v => !v)} title="More options"
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
@@ -1110,7 +1151,7 @@ export default function RoomPage() {
           <>
             {/* Mobile overlay backdrop */}
             <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setActivePanel(null)} />
-            <aside className="fixed right-0 top-0 bottom-0 w-full max-w-xs sm:relative sm:w-80 sm:max-w-none border-l border-white/8 flex flex-col flex-shrink-0 bg-[#282a2d] animate-slide-right z-50 sm:z-auto">
+            <aside className="fixed right-0 top-0 bottom-0 w-full max-w-xs sm:relative sm:w-80 sm:max-w-none flex flex-col flex-shrink-0 bg-[#282a2d] rounded-l-2xl animate-slide-right z-50 sm:z-auto overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8 flex-shrink-0">
                 <h2 className="text-sm font-bold text-white">{panelTitle[activePanel]}</h2>
                 <button onClick={() => setActivePanel(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-400 hover:text-white transition-colors">
@@ -1147,33 +1188,28 @@ export default function RoomPage() {
           )}
         </div>
 
-        {/* Center — ALL controls + Leave (Google Meet: everything centered) */}
-        <div className="flex items-end gap-2.5 flex-1 justify-center pb-1">
-          {/* Mic — with device picker arrow */}
-          <DeviceBtn
-            onToggle={toggleAudio} danger={!audioEnabled}
-            title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}
+        {/* Center — ALL controls + Leave */}
+        <div className="flex items-center gap-2 flex-1 justify-center">
+          {/* Mic group: [dots/bars][MIC] */}
+          <MicGroup
+            audioEnabled={audioEnabled} onToggle={toggleAudio}
+            isSpeaking={isLocalSpeaking}
             devices={audioDevices} currentId={currentAudioId}
             onSelectDevice={async (id) => {
               await switchDevice('audio', id);
               setCurrentAudioId(id);
               localStorage.setItem('syncspace_mic_id', id);
-            }}>
-            {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
-          </DeviceBtn>
+            }} />
 
-          {/* Camera — with device picker arrow */}
-          <DeviceBtn
-            onToggle={toggleVideo} danger={!videoEnabled}
-            title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}
+          {/* Camera group: [^][CAM] */}
+          <CamGroup
+            videoEnabled={videoEnabled} onToggle={toggleVideo}
             devices={videoDevices} currentId={currentVideoId}
             onSelectDevice={async (id) => {
               await switchDevice('video', id);
               setCurrentVideoId(id);
               localStorage.setItem('syncspace_cam_id', id);
-            }}>
-            {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
-          </DeviceBtn>
+            }} />
 
           {/* Screen share */}
           <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop presenting (S)' : 'Present now (S)'}>
@@ -1196,9 +1232,9 @@ export default function RoomPage() {
             <MoreHorizontal className="w-6 h-6" />
           </CtrlBtn>
 
-          {/* Leave — red pill, inline with controls */}
+          {/* Leave — red pill */}
           <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-2 pl-5 pr-6 h-14 rounded-full bg-[#ea4335] hover:bg-[#d33c2c] text-white font-medium text-sm transition-colors flex-shrink-0 ml-1">
+            className="flex items-center gap-2 pl-5 pr-6 h-14 rounded-full bg-[#ea4335] hover:bg-[#d33c2c] text-white font-medium text-sm transition-colors flex-shrink-0 ml-2">
             <PhoneOff className="w-5 h-5 flex-shrink-0" />
             <span>Leave</span>
           </button>
@@ -1222,7 +1258,6 @@ export default function RoomPage() {
           onStopShare={handleScreenShare}
           isHandRaised={isHandRaised}
           onHandRaise={handleHandRaise}
-          onSettings={() => setShowSettings(true)}
           onClose={() => setShowMore(false)}
         />
       )}
