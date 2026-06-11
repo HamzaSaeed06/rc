@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-dark-900 text-white font-sans antialiased;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-dark-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-dark-500; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-lg
+           transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply bg-transparent hover:bg-dark-700 text-gray-300 hover:text-white font-medium px-4 py-2
+           rounded-lg transition-colors duration-200;
+  }
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg
+           transition-colors duration-200;
+  }
+  .input-field {
+    @apply w-full bg-dark-700 border border-dark-600 text-white placeholder-gray-500 rounded-xl
+           px-4 py-2.5 focus:outline-none focus:border-primary-500 focus:ring-1
+           focus:ring-primary-500 transition-colors duration-200;
+  }
+  .glass-card {
+    @apply bg-dark-800 bg-opacity-80 backdrop-blur-sm border border-dark-600 rounded-xl;
+  }
+  .icon-btn {
+    @apply p-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center;
+  }
+  /* WhatsApp-style typing dots container */
+  .typing-dots {
+    @apply flex items-center gap-1 px-3 py-2 rounded-2xl rounded-bl-none bg-dark-700
+           w-fit;
+  }
+  .typing-dot {
+    @apply w-2 h-2 rounded-full bg-gray-400;
+    animation: typingDot 1.4s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Speaking glow ring — applied via JS inline style for color */
+  .speaking-ring {
+    animation: speakingGlow 1.5s ease-in-out infinite;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-dark-500 rounded-full;
+  }
+
+  /* Meet bottom control button */
+  .meet-btn {
+    @apply flex flex-col items-center justify-center w-14 h-14 rounded-2xl
+           transition-all duration-200 shadow-sm gap-0.5;
+  }
+  .meet-btn-label {
+    @apply text-[9px] font-medium opacity-70 leading-none;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+}
