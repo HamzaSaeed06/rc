@@ -120,8 +120,8 @@ export default function HomePage() {
             </button>
 
             {/* Code input + Join button */}
-            <form onSubmit={handleJoin} className="flex items-center gap-0">
-              <div className="flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-lg rounded-r-none px-3 gap-2 transition-colors focus-within:border-[#8ab4f8] flex-1 sm:flex-none border-r-0">
+            <form onSubmit={handleJoin} className="flex items-center gap-2">
+              <div className="flex items-center bg-transparent border border-[#5f6368] hover:border-[#8ab4f8] rounded-lg px-3 gap-2 transition-colors focus-within:border-[#8ab4f8] flex-1 sm:flex-none">
                 <Keyboard className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
                 <input
                   type="text"
@@ -133,7 +133,7 @@ export default function HomePage() {
               </div>
               <button type="submit"
                 disabled={!code.trim()}
-                className="px-4 py-2.5 text-sm font-medium rounded-lg rounded-l-none border border-[#5f6368] border-l-[#3c4043] text-[#8ab4f8] hover:bg-[#4f46e5]/10 hover:text-white disabled:opacity-40 disabled:cursor-default transition-colors whitespace-nowrap flex-shrink-0">
+                className="px-4 py-2.5 text-sm font-medium rounded-lg text-[#8ab4f8] hover:text-white disabled:opacity-40 disabled:cursor-default transition-colors whitespace-nowrap flex-shrink-0">
                 Join
               </button>
             </form>
