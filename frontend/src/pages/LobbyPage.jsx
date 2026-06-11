@@ -53,29 +53,32 @@ export default function LobbyPage() {
     if (camPerm === 'granted') startCamera();
   }, [camPerm]); // eslint-disable-line
 
-  // ── Audio visualizer: 3 white pill bars, 2x sharp, centered ─────────────────
-  // Canvas buffer is always 2× the CSS size to avoid blur on all displays.
-  // All draw coords use the buffer space (80×80).
-  const BUF = 80;   // buffer px (= 40 CSS × 2)
-  const BW  = 12;   // bar width in buffer px
-  const BG  = 10;   // gap between bars in buffer px
-  // total bar area = 3*12 + 2*10 = 56  →  startX = (80-56)/2 = 12
-  const B_STARTX  = (BUF - (3 * BW + 2 * BG)) / 2;  // = 12
-  const B_CENTERY = BUF / 2;                          // = 40
-  const B_MAXHALF = B_CENTERY - 8;                    // = 32  (4px CSS padding)
-  const B_MINHALF = BW / 2 + 2;                       // = 8   (minimum pill height)
+  // ── Audio visualizer: 3 HORIZONTAL pill bars growing from center left+right ──
+  // Layout: 3 rows stacked, each bar is a horizontal capsule.
+  // On audio → bar expands LEFT and RIGHT from center X simultaneously.
+  // Buffer = 72px (36px CSS × 2) — always sharp, no DPR logic needed.
+  const BUF     = 72;   // buffer size in real px  (36px CSS)
+  const BH      = 8;    // bar HEIGHT in buffer px  (4px CSS)
+  const BG      = 6;    // gap between rows in buffer px
+  const BR      = BH / 2;                       // = 4, capsule radius
+  const CX      = BUF / 2;                      // = 36, center X
+  // 3 rows: total height = 3*8 + 2*6 = 36  →  startY = (72-36)/2 = 18
+  const ROW_CY  = [22, 36, 50];                 // center Y of each row
+  const MAX_HW  = CX - 5;                       // = 31, max half-width (5px padding)
+  const MIN_HW  = BR;                           // = 4,  min = just a pill dot
+  const FIDX    = [1, 6, 14];                   // FFT bins: low / mid / high
 
-  // Frequency bin indices (sampled from fftSize=64 → 32 bins)
-  const FREQ_IDX = [1, 6, 14]; // low / mid / high
-
-  const fillPill = (ctx, x, cy, half) => {
-    const r  = BW / 2;
-    const y  = cy - half;
-    const h  = half * 2;
+  // Draw a horizontal capsule centered at (cx, cy) with half-width hw
+  const fillHPill = (ctx, cx, cy, hw) => {
+    const r  = BR;
+    const x1 = cx - hw;
+    const x2 = cx + hw;
     ctx.beginPath();
-    ctx.arc(x + r, y + r,     r, Math.PI, 0,        false); // top cap
-    ctx.lineTo(x + BW, y + h - r);
-    ctx.arc(x + r, y + h - r, r, 0,        Math.PI, false); // bottom cap
+    ctx.moveTo(x1 + r, cy - r);
+    ctx.lineTo(x2 - r, cy - r);
+    ctx.arc(x2 - r, cy, r, -Math.PI / 2,  Math.PI / 2, false); // right cap
+    ctx.lineTo(x1 + r, cy + r);
+    ctx.arc(x1 + r, cy, r,  Math.PI / 2, -Math.PI / 2, false); // left cap
     ctx.closePath();
     ctx.fill();
   };
@@ -89,12 +92,10 @@ export default function LobbyPage() {
     ctx.clearRect(0, 0, BUF, BUF);
 
     for (let i = 0; i < 3; i++) {
-      const val  = dataArray[FREQ_IDX[i]] / 255;
-      const half = Math.max(B_MINHALF, Math.round(val * B_MAXHALF));
-      const x    = B_STARTX + i * (BW + BG);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.93)';
-      fillPill(ctx, x, B_CENTERY, half);
+      const val = dataArray[FIDX[i]] / 255;
+      const hw  = Math.max(MIN_HW, Math.round(val * MAX_HW));
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      fillHPill(ctx, CX, ROW_CY[i], hw);
     }
 
     animRef.current = requestAnimationFrame(() => drawVisualizer(analyser, dataArray));
@@ -107,9 +108,8 @@ export default function LobbyPage() {
     ctx.clearRect(0, 0, BUF, BUF);
 
     for (let i = 0; i < 3; i++) {
-      const x = B_STARTX + i * (BW + BG);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.30)';
-      fillPill(ctx, x, B_CENTERY, B_MINHALF);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+      fillHPill(ctx, CX, ROW_CY[i], MIN_HW);
     }
   }, []); // eslint-disable-line
 
@@ -287,12 +287,12 @@ export default function LobbyPage() {
             flex items-end justify-between">
 
             {/* 🎵 Audio visualizer — dark circle, bottom-left */}
-            <div className="w-10 h-10 rounded-full bg-[#1e2030] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-[#1e2030] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
               <canvas
                 ref={canvasRef}
-                width={80}
-                height={80}
-                style={{ width: '40px', height: '40px', display: 'block' }}
+                width={72}
+                height={72}
+                style={{ width: '36px', height: '36px', display: 'block' }}
               />
             </div>
 
