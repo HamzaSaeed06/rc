@@ -141,7 +141,7 @@ export default function DashboardPage() {
               )}
             </form>
             <button onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-indigo-600/20">
+              className="flex items-center gap-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors">
               <Plus className="w-4 h-4" />
               New meeting
             </button>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
                   Cancel
                 </button>
                 <button type="submit" disabled={creating}
-                  className="flex-1 py-2.5 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-indigo-600/20">
+                  className="flex-1 py-2.5 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   {creating ? 'Creating…' : 'Create'}
                 </button>

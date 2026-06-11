@@ -512,7 +512,7 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }
         <div className="mt-8 flex justify-end gap-3">
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={saving}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg disabled:opacity-50 transition-colors">
+            className="px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors">
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
@@ -1054,7 +1054,7 @@ export default function RoomPage() {
 
           {/* Leave */}
           <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 h-10 sm:h-12 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all shadow-lg shadow-red-600/20 flex-shrink-0">
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 h-10 sm:h-12 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all flex-shrink-0">
             <PhoneOff className="w-4 h-4" />
             <span className="hidden sm:block">Leave</span>
           </button>

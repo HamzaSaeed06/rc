@@ -105,7 +105,7 @@ export default function HomePage() {
           {/* Action row */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button onClick={handleNew}
-              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-base px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[.98]">
+              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-base px-6 py-3 rounded-xl transition-all active:scale-[.98]">
               <Video className="w-5 h-5 flex-shrink-0" />
               New meeting
             </button>

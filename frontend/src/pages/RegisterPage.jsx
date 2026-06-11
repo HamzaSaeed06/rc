@@ -106,7 +106,7 @@ export default function RegisterPage() {
               </div>
 
               <button type="submit" disabled={loading}
-                className="w-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-1 shadow-lg shadow-indigo-600/20">
+                className="w-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-1">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? 'Creating account…' : 'Create Account'}
               </button>
