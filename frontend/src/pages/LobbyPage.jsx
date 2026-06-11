@@ -53,47 +53,66 @@ export default function LobbyPage() {
     if (camPerm === 'granted') startCamera();
   }, [camPerm]); // eslint-disable-line
 
-  // ── Canvas visualizer: 3 bars, vertical, center-symmetric, real FFT data ────
+  // ── Pill (capsule) shape helper ──────────────────────────────────────────────
+  const drawPill = (ctx, x, y, w, h) => {
+    const r = w / 2;
+    ctx.beginPath();
+    ctx.arc(x + r, y + r,     r, Math.PI, 0);          // top semicircle
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arc(x + r, y + h - r, r, 0,       Math.PI);    // bottom semicircle
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  // ── Canvas visualizer: 3 white pill bars, sharp (DPR-aware), centered ────────
+  const VIZ_CSS = 48;   // canvas CSS size (matches w-12 h-12 container inner)
+  const BAR_W   = 6;
+  const BAR_GAP = 5;
+
+  const setupCanvas = (canvas) => {
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== VIZ_CSS * dpr) {
+      canvas.width  = VIZ_CSS * dpr;
+      canvas.height = VIZ_CSS * dpr;
+      canvas.style.width  = VIZ_CSS + 'px';
+      canvas.style.height = VIZ_CSS + 'px';
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+    return ctx;
+  };
+
   const drawVisualizer = useCallback((analyser, dataArray) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx     = canvas.getContext('2d');
-    const W       = canvas.width;
-    const H       = canvas.height;
+
+    const ctx     = setupCanvas(canvas);
+    const W       = VIZ_CSS;
+    const H       = VIZ_CSS;
 
     analyser.getByteFrequencyData(dataArray);
     ctx.clearRect(0, 0, W, H);
 
-    const BAR_W   = 7;
-    const BAR_GAP = 5;
-    const centerY = H / 2;
-    const maxHalf = centerY - 4;
     const totalW  = 3 * BAR_W + 2 * BAR_GAP;
-    const startX  = Math.floor((W - totalW) / 2);
+    const startX  = (W - totalW) / 2;
+    const centerY = H / 2;
+    const maxHalf = centerY - 6;
 
-    // Sample 3 distinct frequency regions: low / mid / high
-    const bins     = dataArray.length;
-    const indices  = [
-      Math.floor(bins * 0.05),   // low freq
-      Math.floor(bins * 0.25),   // mid freq
-      Math.floor(bins * 0.55),   // high freq
+    // 3 distinct frequency bins: low / mid / high
+    const bins    = dataArray.length;
+    const indices = [
+      Math.floor(bins * 0.05),
+      Math.floor(bins * 0.25),
+      Math.floor(bins * 0.55),
     ];
 
     for (let i = 0; i < 3; i++) {
       const val  = dataArray[indices[i]] / 255;
-      const half = Math.max(5, Math.round(val * maxHalf));
+      const half = Math.max(BAR_W / 2 + 2, Math.round(val * maxHalf));
       const x    = startX + i * (BAR_W + BAR_GAP);
 
-      // Teal gradient — bright center, fades to edges
-      const grad = ctx.createLinearGradient(0, centerY - half, 0, centerY + half);
-      grad.addColorStop(0,    'rgba(0, 230, 200, 0.15)');
-      grad.addColorStop(0.25, 'rgba(0, 230, 200, 0.85)');
-      grad.addColorStop(0.5,  '#00e6c8');
-      grad.addColorStop(0.75, 'rgba(0, 230, 200, 0.85)');
-      grad.addColorStop(1,    'rgba(0, 230, 200, 0.15)');
-
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, centerY - half, BAR_W, half * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      drawPill(ctx, x, centerY - half, BAR_W, half * 2);
     }
 
     animRef.current = requestAnimationFrame(() => drawVisualizer(analyser, dataArray));
@@ -102,21 +121,21 @@ export default function LobbyPage() {
   const drawSilence = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx    = canvas.getContext('2d');
-    const W      = canvas.width;
-    const H      = canvas.height;
+
+    const ctx    = setupCanvas(canvas);
+    const W      = VIZ_CSS;
+    const H      = VIZ_CSS;
     ctx.clearRect(0, 0, W, H);
 
-    const BAR_W  = 7;
-    const BAR_GAP = 5;
-    const centerY = H / 2;
     const totalW  = 3 * BAR_W + 2 * BAR_GAP;
-    const startX  = Math.floor((W - totalW) / 2);
+    const startX  = (W - totalW) / 2;
+    const centerY = H / 2;
+    const minHalf = BAR_W / 2 + 2;   // smallest pill = just a circle
 
     for (let i = 0; i < 3; i++) {
       const x = startX + i * (BAR_W + BAR_GAP);
-      ctx.fillStyle = 'rgba(0, 230, 200, 0.25)';
-      ctx.fillRect(x, centerY - 3, BAR_W, 6);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      drawPill(ctx, x, centerY - minHalf, BAR_W, minHalf * 2);
     }
   }, []); // eslint-disable-line
 
@@ -293,13 +312,13 @@ export default function LobbyPage() {
             bg-gradient-to-t from-black/75 via-black/20 to-transparent
             flex items-end justify-between">
 
-            {/* 🔵 Audio visualizer — circular blue box, bottom-left */}
-            <div className="w-14 h-14 rounded-full bg-[#4f46e5] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
+            {/* 🎵 Audio visualizer — dark pill circle, bottom-left */}
+            <div className="w-12 h-12 rounded-full bg-[#1e2030] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
               <canvas
                 ref={canvasRef}
-                width={52}
-                height={52}
-                className="block"
+                width={48}
+                height={48}
+                style={{ width: '48px', height: '48px', display: 'block' }}
               />
             </div>
 
