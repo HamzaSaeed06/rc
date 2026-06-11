@@ -3,7 +3,17 @@ const logger = require('../utils/logger');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
+    let uri = process.env.MONGO_URI;
+
+    if (!uri) {
+      logger.warn('MONGO_URI not set — starting embedded MongoDB (development only)');
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongod = await MongoMemoryServer.create();
+      uri = mongod.getUri();
+      logger.info(`Embedded MongoDB started at: ${uri}`);
+    }
+
+    const conn = await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });

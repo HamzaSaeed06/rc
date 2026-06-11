@@ -18,6 +18,9 @@ const AppError = require('./utils/AppError');
 
 const app = express();
 
+// Trust proxy (required for Replit / reverse-proxy environments)
+app.set('trust proxy', 1);
+
 // ─── Security Middleware ───────────────────────────────────────────────────────
 app.use(
   helmet({
@@ -28,19 +31,23 @@ app.use(mongoSanitize());
 app.use(hpp());
 
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
+const isDev = process.env.NODE_ENV !== 'production';
+
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  windowMs: 15 * 60 * 1000,
+  max: isDev ? 1000 : 20,
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isDev,
 });
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: isDev ? 5000 : 200,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isDev,
 });
 
 // ─── General Middleware ────────────────────────────────────────────────────────

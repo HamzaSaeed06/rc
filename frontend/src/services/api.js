@@ -40,7 +40,11 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch {
         localStorage.removeItem('accessToken');
-        window.location.href = '/login';
+        // Only hard-redirect if not already on an auth page to prevent reload loops
+        const path = window.location.pathname;
+        if (!path.startsWith('/login') && !path.startsWith('/register')) {
+          window.location.href = '/login';
+        }
       }
     }
 

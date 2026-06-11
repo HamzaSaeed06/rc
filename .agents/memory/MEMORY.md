@@ -1,0 +1,4 @@
+- [Embedded MongoDB for dev](embedded-mongodb.md) — backend uses mongodb-memory-server when MONGO_URI is unset; no external DB needed in dev
+- [JWT dev fallbacks](jwt-dev-fallbacks.md) — jwt.service.js has hardcoded dev secrets when JWT_SECRET/JWT_REFRESH_SECRET env vars are missing
+- [API infinite redirect fix](api-redirect-fix.md) — axios interceptor must NOT redirect to /login when already on /login or /register (causes reload loop)
+- [Rate limiter proxy fix](rate-limiter-fix.md) — Express needs `app.set('trust proxy', 1)` on Replit; rate limiter uses `skip: () => isDev` in development
