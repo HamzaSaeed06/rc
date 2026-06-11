@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Video, Plus, LogOut, Users, Globe, Lock, Loader2,
-  Search, Clock, X, Eye, EyeOff,
+  Search, Clock, X, Eye, EyeOff, Shield,
 } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 import api from '@/services/api';
@@ -21,21 +21,15 @@ export default function DashboardPage() {
   const [verifyingPassword, setVerifyingPassword] = useState(false);
   const [joinError, setJoinError] = useState('');
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all' | 'public' | 'private'
+  const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    fetchRooms();
-  }, []);
+  useEffect(() => { fetchRooms(); }, []);
 
   const fetchRooms = async () => {
     try {
       const { data } = await api.get('/rooms');
       setRooms(data.data.rooms);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* silent */ } finally { setLoading(false); }
   };
 
   const handleCreateRoom = async (e) => {
@@ -44,19 +38,13 @@ export default function DashboardPage() {
     try {
       const { data } = await api.post('/rooms', newRoom);
       navigate(`/room/${data.data.room.roomId}`);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCreating(false);
-    }
+    } catch { /* silent */ } finally { setCreating(false); }
   };
 
   const handleJoinRoom = (room) => {
     if (room.isPrivate) {
       setSelectedPrivateRoom(room);
-      setJoinPassword('');
-      setJoinError('');
-      setShowJoinPw(false);
+      setJoinPassword(''); setJoinError(''); setShowJoinPw(false);
     } else {
       navigate(`/room/${room.roomId}`);
     }
@@ -64,292 +52,228 @@ export default function DashboardPage() {
 
   const handleVerifyPassword = async (e) => {
     e.preventDefault();
-    setVerifyingPassword(true);
-    setJoinError('');
+    setVerifyingPassword(true); setJoinError('');
     try {
-      await api.post(`/rooms/${selectedPrivateRoom.roomId}/verify-password`, {
-        password: joinPassword,
-      });
+      await api.post(`/rooms/${selectedPrivateRoom.roomId}/verify-password`, { password: joinPassword });
       setSelectedPrivateRoom(null);
       navigate(`/room/${selectedPrivateRoom.roomId}`);
     } catch (err) {
       setJoinError(err.response?.data?.message || 'Incorrect password');
-    } finally {
-      setVerifyingPassword(false);
-    }
+    } finally { setVerifyingPassword(false); }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+  const handleLogout = async () => { await logout(); navigate('/login'); };
 
-  // ─── Filtering + Search ─────────────────────────────────────────────────────
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch = room.name.toLowerCase().includes(search.toLowerCase()) ||
       room.host?.name?.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter =
-      filter === 'all' ||
-      (filter === 'public' && !room.isPrivate) ||
-      (filter === 'private' && room.isPrivate);
+    const matchesFilter = filter === 'all' || (filter === 'public' && !room.isPrivate) || (filter === 'private' && room.isPrivate);
     return matchesSearch && matchesFilter;
   });
 
-  // ─── Relative time ──────────────────────────────────────────────────────────
-  const timeAgo = (dateStr) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
+  const timeAgo = (d) => {
+    const m = Math.floor((Date.now() - new Date(d)) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
   };
 
+  const initials = (name) => (name || '?').charAt(0).toUpperCase();
+  const avatarColors = ['#4f46e5','#7c3aed','#0891b2','#059669','#d97706','#dc2626','#db2777'];
+  const getColor = (name) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
+
   return (
-    <div className="min-h-screen bg-dark-900">
-      {/* Navbar */}
-      <nav className="border-b border-dark-700 px-6 py-4 sticky top-0 z-10 bg-dark-900 bg-opacity-95 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+    <div className="min-h-screen bg-[#0a0a0f]">
+
+      {/* ── Navbar ── */}
+      <nav className="border-b border-white/8 px-6 py-3.5 sticky top-0 z-20 bg-[#0a0a0f]/95 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/25">
               <Video className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-white">SyncSpace</span>
+            <span className="font-bold text-white text-sm">SyncSpace</span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-sm font-medium text-white">
-                {user?.name?.charAt(0).toUpperCase()}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                style={{ background: getColor(user?.name) }}>
+                {initials(user?.name)}
               </div>
-              <span className="text-sm text-gray-300 hidden sm:block">{user?.name}</span>
+              <span className="text-sm text-gray-300 hidden sm:block font-medium">{user?.name}</span>
             </div>
-            <button onClick={handleLogout} className="btn-ghost flex items-center gap-2 text-sm">
-              <LogOut className="w-4 h-4" />
+            <button onClick={handleLogout}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white px-3 py-2 rounded-xl hover:bg-white/8 transition-all">
+              <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:block">Sign out</span>
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-5xl mx-auto px-6 py-8">
+
+        {/* ── Hero header ── */}
+        <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white">Rooms</h1>
-            <p className="text-gray-400 text-sm mt-1">
-              {rooms.length} active room{rooms.length !== 1 ? 's' : ''} — join one or create your own
+            <h1 className="text-xl font-bold text-white">Meetings</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {rooms.length > 0 ? `${rooms.length} active room${rooms.length !== 1 ? 's' : ''}` : 'No active rooms yet'}
             </p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="btn-primary flex items-center gap-2"
-          >
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-primary-600/20">
             <Plus className="w-4 h-4" />
-            New Room
+            New Meeting
           </button>
         </div>
 
-        {/* Search + Filter bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* ── Search + Filter ── */}
+        <div className="flex flex-col sm:flex-row gap-2.5 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by room name or host..."
-              className="input-field pl-9 text-sm"
-            />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600 pointer-events-none" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search meetings…"
+              className="w-full bg-[#111120] border border-white/10 text-white placeholder-gray-600 rounded-xl px-4 py-2.5 pl-9 text-sm focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/20 transition-all" />
           </div>
-          <div className="flex gap-2">
-            {['all', 'public', 'private'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors duration-200 ${
-                  filter === f
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-dark-700 text-gray-400 hover:text-white hover:bg-dark-600'
-                }`}
-              >
-                {f === 'all' ? 'All' : f === 'public' ? '🌐 Public' : '🔒 Private'}
+          <div className="flex gap-1.5 p-1 bg-[#111120] border border-white/8 rounded-xl">
+            {['all', 'public', 'private'].map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
+                  filter === f ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                {f === 'all' ? 'All' : f === 'public' ? 'Public' : 'Private'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Rooms Grid */}
+        {/* ── Rooms ── */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+          <div className="flex items-center justify-center py-24">
+            <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
           </div>
         ) : filteredRooms.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 bg-dark-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Video className="w-8 h-8 text-gray-500" />
+          <div className="text-center py-24">
+            <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Video className="w-7 h-7 text-gray-600" />
             </div>
-            <p className="text-gray-400">
-              {search || filter !== 'all' ? 'No rooms match your filter.' : 'No active rooms. Create one to get started.'}
+            <p className="text-gray-500 text-sm">
+              {search || filter !== 'all' ? 'No rooms match your search.' : 'No active rooms — create one to get started.'}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredRooms.map((room) => (
-              <div
-                key={room._id}
-                onClick={() => handleJoinRoom(room)}
-                className={`glass-card p-5 cursor-pointer animate-fade-in transition-all duration-200 hover:scale-[1.02] hover:shadow-lg group ${
-                  room.isPrivate
-                    ? 'hover:border-amber-500'
-                    : 'hover:border-primary-600'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    room.isPrivate
-                      ? 'bg-amber-500 bg-opacity-20'
-                      : 'bg-primary-600 bg-opacity-20'
-                  }`}>
-                    {room.isPrivate ? (
-                      <Lock className="w-5 h-5 text-amber-400" />
-                    ) : (
-                      <Globe className="w-5 h-5 text-primary-400" />
-                    )}
+              <div key={room._id} onClick={() => handleJoinRoom(room)}
+                className="group bg-[#111120] border border-white/8 hover:border-white/18 rounded-2xl p-5 cursor-pointer transition-all duration-200 hover:bg-[#15152a] animate-fade-in">
+                {/* Top row */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${room.isPrivate ? 'bg-amber-400/12' : 'bg-primary-600/15'}`}>
+                    {room.isPrivate
+                      ? <Lock className="w-4.5 h-4.5 text-amber-400" />
+                      : <Globe className="w-4.5 h-4.5 text-primary-400" />}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 bg-dark-700 px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5">
+                    {room.isPrivate && (
+                      <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">Private</span>
+                    )}
+                    <span className="text-[10px] text-gray-500 bg-white/6 border border-white/8 px-2 py-0.5 rounded-full font-medium">
                       {room.participants?.length || 0}/{room.maxParticipants}
                     </span>
-                    {room.isPrivate && (
-                      <span className="text-xs text-amber-400 bg-amber-500 bg-opacity-10 px-2 py-1 rounded-full font-medium">
-                        Password
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                <h3 className="font-semibold text-white mb-1 truncate group-hover:text-primary-300 transition-colors">
+                {/* Name */}
+                <h3 className="font-semibold text-white text-sm mb-1 truncate group-hover:text-primary-300 transition-colors">
                   {room.name}
                 </h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mb-4">
+                  <Users className="w-3 h-3" /> {room.host?.name}
+                </p>
 
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    Hosted by {room.host?.name}
-                  </p>
-                  <p className="text-xs text-gray-600 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {timeAgo(room.createdAt)}
-                  </p>
-                </div>
-
-                {/* Participant avatars */}
-                {room.participants?.length > 0 && (
-                  <div className="flex items-center gap-1 mt-3 pt-3 border-t border-dark-600">
-                    <div className="flex -space-x-1.5">
-                      {room.participants.slice(0, 5).map((p, i) => (
-                        <div
-                          key={i}
-                          className="w-5 h-5 rounded-full bg-primary-700 border border-dark-700 flex items-center justify-center text-[9px] font-medium text-white"
-                          title={p.user?.name}
-                        >
-                          {p.user?.name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                      ))}
-                      {room.participants.length > 5 && (
-                        <div className="w-5 h-5 rounded-full bg-dark-600 border border-dark-700 flex items-center justify-center text-[9px] text-gray-400">
-                          +{room.participants.length - 5}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-500 ml-1">in room</span>
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-white/6">
+                  <div className="flex -space-x-1.5">
+                    {(room.participants?.slice(0, 4) || []).map((p, i) => (
+                      <div key={i} className="w-5 h-5 rounded-full border-2 border-[#111120] flex items-center justify-center text-[8px] font-bold text-white"
+                        style={{ background: getColor(p.user?.name) }} title={p.user?.name}>
+                        {initials(p.user?.name)}
+                      </div>
+                    ))}
+                    {(room.participants?.length || 0) > 4 && (
+                      <div className="w-5 h-5 rounded-full bg-white/10 border-2 border-[#111120] flex items-center justify-center text-[8px] text-gray-400">
+                        +{room.participants.length - 4}
+                      </div>
+                    )}
+                    {(room.participants?.length || 0) === 0 && (
+                      <span className="text-[10px] text-gray-600">Empty</span>
+                    )}
                   </div>
-                )}
+                  <span className="text-[10px] text-gray-600 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />{timeAgo(room.createdAt)}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Create Room Modal */}
+      {/* ── Create Room Modal ── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-card p-6 w-full max-w-md animate-slide-up">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setShowModal(false)}>
+          <div className="bg-[#111120] border border-white/12 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up"
+            onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-white">Create New Room</h2>
-              <button onClick={() => setShowModal(false)} className="icon-btn text-gray-400 hover:text-white">
+              <h2 className="text-base font-bold text-white">New Meeting</h2>
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-xl hover:bg-white/8 text-gray-500 hover:text-white transition-all">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Room Name</label>
-                <input
-                  type="text"
-                  value={newRoom.name}
-                  onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
-                  placeholder="e.g. Team Standup"
-                  className="input-field"
-                  required
-                  maxLength={100}
-                />
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Meeting Name</label>
+                <input type="text" value={newRoom.name} onChange={e => setNewRoom({ ...newRoom, name: e.target.value })}
+                  placeholder="e.g. Team Standup" className="input-field" required maxLength={100} autoFocus />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                  Max Participants
-                </label>
-                <input
-                  type="number"
-                  value={newRoom.maxParticipants}
-                  onChange={(e) => setNewRoom({ ...newRoom, maxParticipants: parseInt(e.target.value) })}
-                  className="input-field"
-                  min={2}
-                  max={20}
-                />
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Max Participants</label>
+                <input type="number" value={newRoom.maxParticipants}
+                  onChange={e => setNewRoom({ ...newRoom, maxParticipants: parseInt(e.target.value) })}
+                  className="input-field" min={2} max={20} />
               </div>
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-dark-700 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={newRoom.isPrivate}
-                  onChange={(e) => setNewRoom({ ...newRoom, isPrivate: e.target.checked, password: '' })}
-                  className="w-4 h-4 accent-primary-600"
-                />
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-white/4 hover:bg-white/6 border border-white/8 transition-all">
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${newRoom.isPrivate ? 'bg-primary-600 border-primary-600' : 'border-white/20'}`}
+                  onClick={() => setNewRoom({ ...newRoom, isPrivate: !newRoom.isPrivate, password: '' })}>
+                  {newRoom.isPrivate && <X className="w-3 h-3 text-white" />}
+                </div>
+                <input type="checkbox" checked={newRoom.isPrivate}
+                  onChange={e => setNewRoom({ ...newRoom, isPrivate: e.target.checked, password: '' })} className="hidden" />
                 <div>
-                  <span className="text-sm text-gray-200 font-medium">Private room</span>
-                  <p className="text-xs text-gray-500 mt-0.5">Room appears in list but requires a password to enter</p>
+                  <span className="text-sm text-white font-medium">Private meeting</span>
+                  <p className="text-xs text-gray-500 mt-0.5">Requires a password to enter</p>
                 </div>
               </label>
               {newRoom.isPrivate && (
                 <div className="animate-fade-in">
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Room Password</label>
-                  <input
-                    type="password"
-                    value={newRoom.password}
-                    onChange={(e) => setNewRoom({ ...newRoom, password: e.target.value })}
-                    placeholder="Enter password (4–32 chars)"
-                    className="input-field"
-                    required
-                    minLength={4}
-                    maxLength={32}
-                  />
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Password</label>
+                  <input type="password" value={newRoom.password}
+                    onChange={e => setNewRoom({ ...newRoom, password: e.target.value })}
+                    placeholder="4–32 characters" className="input-field" required minLength={4} maxLength={32} />
                 </div>
               )}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-ghost flex-1"
-                >
+              <div className="flex gap-2.5 pt-1">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 text-gray-300 text-sm font-semibold transition-all">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                >
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {creating ? 'Creating...' : 'Create Room'}
+                <button type="submit" disabled={creating}
+                  className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-primary-600/20">
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {creating ? 'Creating…' : 'Create Meeting'}
                 </button>
               </div>
             </form>
@@ -357,59 +281,41 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Verify Room Password Modal */}
+      {/* ── Verify Password Modal ── */}
       {selectedPrivateRoom && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-card p-6 w-full max-w-md animate-slide-up">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setSelectedPrivateRoom(null)}>
+          <div className="bg-[#111120] border border-white/12 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-slide-up"
+            onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 bg-amber-500 bg-opacity-20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-amber-400/12 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Lock className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-white">Private Room</h2>
-                <p className="text-sm text-gray-400">"{selectedPrivateRoom.name}" is password-protected</p>
+                <h2 className="text-sm font-bold text-white">Private Meeting</h2>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">"{selectedPrivateRoom.name}"</p>
               </div>
             </div>
-            <form onSubmit={handleVerifyPassword} className="space-y-4">
+            <form onSubmit={handleVerifyPassword} className="space-y-3">
               <div className="relative">
-                <input
-                  type={showJoinPw ? 'text' : 'password'}
-                  value={joinPassword}
-                  onChange={(e) => setJoinPassword(e.target.value)}
-                  placeholder="Enter room password"
-                  className="input-field pr-10"
-                  required
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowJoinPw((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                >
+                <input type={showJoinPw ? 'text' : 'password'} value={joinPassword}
+                  onChange={e => setJoinPassword(e.target.value)}
+                  placeholder="Enter password" className="input-field pr-10" required autoFocus />
+                <button type="button" onClick={() => setShowJoinPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
                   {showJoinPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-                {joinError && (
-                  <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
-                    <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
-                    {joinError}
-                  </p>
-                )}
               </div>
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPrivateRoom(null)}
-                  className="btn-ghost flex-1"
-                >
+              {joinError && <p className="text-xs text-red-400">{joinError}</p>}
+              <div className="flex gap-2.5 pt-1">
+                <button type="button" onClick={() => setSelectedPrivateRoom(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 text-gray-300 text-sm font-semibold transition-all">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={verifyingPassword || !joinPassword}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                >
-                  {verifyingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                  {verifyingPassword ? 'Verifying...' : 'Join Room'}
+                <button type="submit" disabled={verifyingPassword || !joinPassword}
+                  className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                  {verifyingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {verifyingPassword ? 'Checking…' : 'Join'}
                 </button>
               </div>
             </form>
