@@ -554,29 +554,28 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }
   );
 }
 
-// ─── Control button ───────────────────────────────────────────────────────────
-function CtrlBtn({ onClick, active, danger, title, children, badge, label }) {
+// ─── Control button (Google Meet style) ──────────────────────────────────────
+function CtrlBtn({ onClick, active, danger, title, children, badge }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <button onClick={onClick} title={title}
-        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 relative
-          ${danger ? 'bg-red-600/25 text-red-400 hover:bg-red-600/35 shadow-[0_0_10px_rgba(239,68,68,0.25)]'
-            : active ? 'bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600/40 shadow-[0_0_10px_rgba(99,102,241,0.3)]'
-              : 'bg-white/8 text-gray-200 hover:bg-white/14 hover:text-white'}`}
-      >
-        {children}
-        {badge > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-500 rounded-full text-[9px] font-bold flex items-center justify-center text-white">
-            {badge > 9 ? '9+' : badge}
-          </span>
-        )}
-      </button>
-      {label && <span className="text-[10px] text-gray-500 font-medium leading-none">{label}</span>}
-    </div>
+    <button onClick={onClick} title={title}
+      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 relative flex-shrink-0
+        ${danger
+          ? 'bg-[#ea4335] text-white hover:bg-[#d33c2c]'
+          : active
+            ? 'bg-[#8ab4f8]/20 text-[#8ab4f8] hover:bg-[#8ab4f8]/30'
+            : 'bg-[#3c4043] text-white hover:bg-[#4a4d51]'}`}
+    >
+      {children}
+      {badge > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#8ab4f8] rounded-full text-[10px] font-bold flex items-center justify-center text-[#202124] px-0.5">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </button>
   );
 }
 
-// ─── Grid View ────────────────────────────────────────────────────────────────
+// ─── Grid View (Google Meet style) ────────────────────────────────────────────
 function GridView({ peers, localStream, screenStream, isScreenSharing, audioEnabled, videoEnabled, peerStates, screenSharingPeers, raisedHands, isHandRaised, user, room, onMute, setPinnedUser, setLayout }) {
   const peerList = Object.entries(peers);
   const total = peerList.length + 1;
@@ -584,13 +583,13 @@ function GridView({ peers, localStream, screenStream, isScreenSharing, audioEnab
   const { cols, rows } = getGridLayout(total);
 
   return (
-    <div className="flex-1 overflow-hidden p-2 sm:p-3 pb-20">
-      <div className="w-full h-full grid gap-2 sm:gap-3 place-content-center mx-auto"
+    <div className="flex-1 overflow-hidden bg-[#202124] p-3">
+      <div className="w-full h-full grid gap-2 place-items-center mx-auto"
         style={{
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
         }}>
-        <div className="rounded-2xl overflow-hidden min-h-0">
+        <div className="rounded-2xl overflow-hidden min-h-0 w-full h-full">
           <VideoTile stream={isScreenSharing ? screenStream : localStream} user={user} isLocal muted
             videoDisabled={isScreenSharing ? false : !videoEnabled}
             isHandRaised={isHandRaised} audioEnabled={audioEnabled} videoEnabled={videoEnabled}
@@ -600,7 +599,7 @@ function GridView({ peers, localStream, screenStream, isScreenSharing, audioEnab
         {peerList.map(([sid]) => {
           const sharing = screenSharingPeers.has(sid);
           return (
-            <div key={sid} className="rounded-2xl overflow-hidden min-h-0">
+            <div key={sid} className="rounded-2xl overflow-hidden min-h-0 w-full h-full">
               <VideoTile stream={peers[sid]?.stream} user={peers[sid]?.user} muted={false}
                 videoDisabled={sharing ? false : peerStates[sid]?.videoEnabled === false}
                 isHandRaised={raisedHands[sid] === true}
@@ -961,39 +960,62 @@ export default function RoomPage() {
   return (
     <div className="h-screen bg-[#202124] flex flex-col overflow-hidden select-none">
 
-      {/* ══ TOP BAR ══════════════════════════════════════════════════════════ */}
-      <header className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 bg-[#202124] border-b border-white/6">
-        {/* Left — room info */}
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-white leading-tight">{room?.name || 'Meeting'}</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs text-[#9aa0a6] font-mono">{roomId}</span>
-              <button onClick={copyLink} className="text-[#9aa0a6] hover:text-white transition-colors" title="Copy invite link">
+      {/* ══ TOP BAR (Google Meet style) ════════════════════════════════════ */}
+      <header className="flex items-center justify-between px-4 py-2 flex-shrink-0 bg-[#202124]">
+        {/* Left — room name + code + participant count */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-medium text-white">{room?.name || 'Meeting'}</span>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-[11px] text-[#9aa0a6] font-mono truncate max-w-[180px]">{roomId}</span>
+              <button onClick={copyLink} className="text-[#9aa0a6] hover:text-[#e8eaed] transition-colors p-0.5 rounded" title="Copy invite link">
                 {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-white/6 border border-white/10 px-2.5 py-1 rounded-full">
-            <Users className="w-3 h-3 text-gray-400" />
-            <span className="text-xs text-gray-300 font-semibold tabular-nums">{peerList.length + 1}</span>
-          </div>
+          {/* Participant badge */}
+          <button onClick={() => togglePanel(PANELS.participants)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/8 transition-colors">
+            <Users className="w-4 h-4 text-[#9aa0a6]" />
+            <span className="text-xs text-[#9aa0a6] font-medium">{peerList.length + 1}</span>
+          </button>
         </div>
 
-        {/* Right — duration + panels + more */}
-        <div className="flex items-center gap-1.5">
-          <div className="hidden sm:flex items-center px-3 py-1.5 rounded-xl bg-white/5 border border-white/8">
-            <span className="text-sm font-bold text-white font-mono tracking-wide">{duration}</span>
-          </div>
-          <CtrlBtn onClick={() => togglePanel(PANELS.participants)} active={activePanel === PANELS.participants} title="People (P)">
+        {/* Right — timer + icon buttons (Google Meet top-right) */}
+        <div className="flex items-center gap-1">
+          {/* Timer */}
+          <span className="text-sm font-medium text-[#e8eaed] mr-2 font-mono">{duration}</span>
+          {/* People */}
+          <button onClick={() => togglePanel(PANELS.participants)} title="People (P)"
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+              ${activePanel === PANELS.participants ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
             <Users className="w-5 h-5" />
-          </CtrlBtn>
-          <CtrlBtn onClick={() => togglePanel(PANELS.files)} active={activePanel === PANELS.files} title="Shared files">
+          </button>
+          {/* Whiteboard/Activities */}
+          <button onClick={() => togglePanel(PANELS.whiteboard)} title="Whiteboard"
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+              ${activePanel === PANELS.whiteboard ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          {/* Files */}
+          <button onClick={() => togglePanel(PANELS.files)} title="Shared files"
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+              ${activePanel === PANELS.files ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
             <FileText className="w-5 h-5" />
-          </CtrlBtn>
-          <CtrlBtn onClick={() => setShowSettings(true)} title="Settings">
+          </button>
+          {/* Settings */}
+          <button onClick={() => setShowSettings(true)} title="Settings"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed] transition-colors">
             <Settings className="w-5 h-5" />
-          </CtrlBtn>
+          </button>
+          {/* More */}
+          <div ref={moreRef} className="relative">
+            <button onClick={() => setShowMore(v => !v)} title="More options"
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                ${showMore ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'text-[#9aa0a6] hover:bg-white/10 hover:text-[#e8eaed]'}`}>
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1044,57 +1066,62 @@ export default function RoomPage() {
         )}
       </div>
 
-      {/* ══ BOTTOM BAR (Google Meet style) ══════════════════════════════════ */}
-      <footer className="flex items-center justify-between py-2 sm:py-3 px-3 sm:px-6 flex-shrink-0 bg-[#202124] border-t border-white/6">
+      {/* ══ BOTTOM BAR — exact Google Meet ══════════════════════════════════ */}
+      <footer className="flex items-center px-4 py-3 flex-shrink-0 bg-[#202124]" style={{ minHeight: '80px' }}>
 
-        {/* Left — clock + meeting code */}
-        <div className="hidden md:flex flex-col min-w-[120px] justify-center flex-shrink-0">
-          <span className="text-sm font-semibold text-white font-mono tracking-wide">{clockTime}</span>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className="text-[11px] text-[#9aa0a6] font-mono truncate max-w-[100px]">{roomId?.slice(0, 8)}…</span>
-            {isRecording && (
-              <span className="flex items-center gap-1 ml-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping flex-shrink-0" />
-                <span className="text-[10px] text-red-400 font-semibold">REC</span>
-              </span>
-            )}
-          </div>
+        {/* Left — time only (Google Meet style) */}
+        <div className="hidden md:flex flex-col justify-center w-[140px] flex-shrink-0 gap-0.5">
+          <span className="text-sm font-medium text-[#e8eaed] font-mono">{clockTime}</span>
+          {isRecording && (
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#ea4335] animate-pulse flex-shrink-0" />
+              <span className="text-[11px] text-[#ea4335] font-medium">Recording</span>
+            </div>
+          )}
         </div>
 
-        {/* Center — main controls */}
-        <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-center overflow-x-auto scrollbar-none px-1 py-0.5">
-          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Mute (M)' : 'Unmute (M)'}>
-            {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        {/* Center — control buttons (Google Meet: mic, cam, share, hand, chat, more) */}
+        <div className="flex items-center gap-3 flex-1 justify-center">
+          {/* Mic */}
+          <CtrlBtn onClick={toggleAudio} danger={!audioEnabled} title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}>
+            {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
           </CtrlBtn>
-          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Stop camera (V)' : 'Start camera (V)'}>
-            {videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          {/* Camera */}
+          <CtrlBtn onClick={toggleVideo} danger={!videoEnabled} title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}>
+            {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
           </CtrlBtn>
-          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop sharing (S)' : 'Share screen (S)'}>
-            {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+          {/* Screen share */}
+          <CtrlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop presenting (S)' : 'Present now (S)'}>
+            {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
           </CtrlBtn>
+          {/* Raise hand */}
           <CtrlBtn onClick={handleHandRaise} active={isHandRaised} title="Raise hand (H)">
-            <Hand className="w-5 h-5" />
+            <Hand className="w-6 h-6" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat} title="Chat (C)"
+          {/* Chat */}
+          <CtrlBtn onClick={() => togglePanel(PANELS.chat)} active={activePanel === PANELS.chat} title="Chat with everyone (C)"
             badge={activePanel !== PANELS.chat ? unreadChat : 0}>
-            <MessageSquare className="w-5 h-5" />
+            <MessageSquare className="w-6 h-6" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)">
-            <LayoutGrid className="w-5 h-5" />
-          </CtrlBtn>
+          {/* More options */}
           <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options">
-            <MoreHorizontal className="w-5 h-5" />
+            <MoreHorizontal className="w-6 h-6" />
           </CtrlBtn>
         </div>
 
-        {/* Right — Leave button (Google Meet style: isolated red pill) */}
-        <div className="flex items-center justify-end min-w-[120px] flex-shrink-0">
+        {/* Right — Leave call (Google Meet: red pill, right-aligned) */}
+        <div className="hidden md:flex items-center justify-end w-[140px] flex-shrink-0">
           <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-2 px-5 h-12 rounded-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium text-sm transition-all shadow-lg shadow-red-600/20">
-            <PhoneOff className="w-5 h-5" />
-            <span className="hidden sm:block">Leave</span>
+            className="flex items-center gap-2 pl-4 pr-6 h-12 rounded-full bg-[#ea4335] hover:bg-[#d33c2c] text-white font-medium text-sm transition-colors">
+            <PhoneOff className="w-5 h-5 flex-shrink-0" />
+            <span>Leave</span>
           </button>
         </div>
+        {/* Mobile leave */}
+        <button onClick={() => setShowLeave(true)} title="Leave call"
+          className="flex md:hidden w-14 h-14 rounded-full items-center justify-center bg-[#ea4335] hover:bg-[#d33c2c] text-white transition-colors flex-shrink-0 ml-3">
+          <PhoneOff className="w-6 h-6" />
+        </button>
       </footer>
 
       {/* ══ OVERLAYS ══════════════════════════════════════════════════════════ */}
