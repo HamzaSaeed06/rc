@@ -1,12 +1,15 @@
 /**
  * ChatPanel — Google Chat / Slack style
- * Avatar on left, name + time on same row, plain text below (no bubbles)
+ * Avatar + name + time row, plain text (no bubbles)
+ * Message hover: emoji bar + copy/reply/more
+ * Mobile: long-press menu
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Send, Paperclip, Loader2, Download,
   FileText, FileSpreadsheet, FileArchive, Film, Image as ImageIcon, X as XIcon,
+  MoreHorizontal, Copy, CornerUpLeft, Check,
 } from 'lucide-react';
 import { getSocket } from '@/services/socket';
 import api from '@/services/api';
@@ -59,7 +62,6 @@ function Lightbox({ src, onClose }) {
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
-
   return (
     <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
       onClick={onClose}>
@@ -92,7 +94,6 @@ function FileCard({ file, baseUrl }) {
       </>
     );
   }
-
   if (isVideo(file.mimeType)) {
     return (
       <div className="mt-2 rounded-xl overflow-hidden border border-white/10">
@@ -100,10 +101,9 @@ function FileCard({ file, baseUrl }) {
       </div>
     );
   }
-
   return (
     <a href={fileUrl} download={file.originalName} target="_blank" rel="noreferrer"
-      className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/4 hover:bg-white/6 transition-colors inline-flex max-w-[220px]">
+      className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/4 hover:bg-white/6 transition-colors max-w-[220px]">
       <FileTypeIcon mimeType={file.mimeType} />
       <div className="min-w-0">
         <p className="text-sm font-medium text-[#e8eaed] truncate max-w-[140px]">{file.originalName}</p>
@@ -118,22 +118,6 @@ function FileCard({ file, baseUrl }) {
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
-function ReactionBar({ messageId, userId, onToggle }) {
-  return (
-    <div className="absolute -top-8 left-10 z-20
-      opacity-0 group-hover:opacity-100 transition-opacity duration-150
-      flex items-center gap-0.5 bg-[#3c4043] rounded-full px-2 py-1 shadow-xl">
-      {EMOJI_LIST.map((emoji) => (
-        <button key={emoji} type="button"
-          onClick={() => onToggle(messageId, emoji)}
-          className="text-sm leading-none px-0.5 hover:scale-125 transition-transform rounded-full">
-          {emoji}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function ReactionPills({ reactions, userId, onToggle, messageId }) {
   if (!reactions?.length) return null;
   const grouped = reactions.reduce((acc, r) => {
@@ -142,9 +126,8 @@ function ReactionPills({ reactions, userId, onToggle, messageId }) {
     acc[r.emoji].users.push(r.user?.name || 'Someone');
     return acc;
   }, {});
-
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5 ml-10">
+    <div className="flex flex-wrap gap-1 mt-1.5 ml-12">
       {Object.entries(grouped).map(([emoji, { count, users }]) => {
         const reacted = reactions.some(r => r.emoji === emoji && (r.user?._id === userId || r.user === userId));
         return (
@@ -158,6 +141,62 @@ function ReactionPills({ reactions, userId, onToggle, messageId }) {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ─── Message hover actions bar ────────────────────────────────────────────────
+
+function MessageActions({ msg, userId, onReact, onReply, onCopy, visible, onMore, showMore, onCloseMore }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const text = msg.type === 'file' ? (msg.content || msg.file?.originalName || '') : (msg.content || '');
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    onCopy?.();
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div className="absolute right-0 top-0 z-20 flex items-center gap-0.5 bg-[#303134] rounded-xl px-1 py-1 shadow-xl border border-white/8 animate-fade-in">
+      {/* Quick emoji reactions */}
+      {EMOJI_LIST.slice(0, 4).map(emoji => (
+        <button key={emoji} type="button" onClick={() => onReact(msg._id, emoji)}
+          className="w-7 h-7 flex items-center justify-center text-base hover:scale-125 transition-transform rounded-lg hover:bg-white/10">
+          {emoji}
+        </button>
+      ))}
+      <div className="w-px h-4 bg-white/15 mx-0.5" />
+      {/* Reply */}
+      <button type="button" onClick={() => onReply(msg)}
+        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Reply">
+        <CornerUpLeft className="w-3.5 h-3.5" />
+      </button>
+      {/* Copy */}
+      <button type="button" onClick={handleCopy}
+        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Copy">
+        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+      </button>
+      {/* More (all emojis) */}
+      <div className="relative">
+        <button type="button" onClick={onMore}
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="More reactions">
+          <MoreHorizontal className="w-3.5 h-3.5" />
+        </button>
+        {showMore && (
+          <div className="absolute bottom-full right-0 mb-1 bg-[#303134] rounded-xl px-2 py-1.5 shadow-2xl border border-white/8 flex gap-1 z-30">
+            {EMOJI_LIST.map(emoji => (
+              <button key={emoji} type="button" onClick={() => { onReact(msg._id, emoji); onCloseMore(); }}
+                className="text-lg hover:scale-125 transition-transform px-1">
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -184,7 +223,6 @@ function TypingIndicator({ typingUsers }) {
   const label = names.length === 1 ? `${names[0]} is typing`
     : names.length === 2 ? `${names[0]} and ${names[1]} are typing`
       : 'Several people are typing';
-
   return (
     <div className="flex items-center gap-2 px-4 py-1">
       <div className="typing-dots">
@@ -209,6 +247,25 @@ function SystemMessage({ content }) {
   );
 }
 
+// ─── Reply quote indicator ─────────────────────────────────────────────────────
+
+function ReplyQuote({ msg, onClear }) {
+  if (!msg) return null;
+  const name = msg.sender?.name || 'Unknown';
+  const preview = msg.type === 'file' ? (msg.file?.originalName || 'File') : (msg.content?.slice(0, 60) || '');
+  return (
+    <div className="mx-3 mb-1 px-3 py-2 rounded-t-2xl bg-[#3c4043] border-l-2 border-[#8ab4f8] flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold text-[#8ab4f8] mb-0.5">{name}</p>
+        <p className="text-xs text-[#9aa0a6] truncate">{preview}</p>
+      </div>
+      <button onClick={onClear} className="text-[#9aa0a6] hover:text-white flex-shrink-0 mt-0.5">
+        <XIcon className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Main ChatPanel ───────────────────────────────────────────────────────────
 
 export default function ChatPanel({ roomId }) {
@@ -221,6 +278,12 @@ export default function ChatPanel({ roomId }) {
   const [filePreview, setFilePreview] = useState(null);
   const [typingUsers, setTypingUsers] = useState({});
   const [isTyping, setIsTyping] = useState(false);
+  const [hoveredMsgId, setHoveredMsgId] = useState(null);
+  const [moreEmojiMsgId, setMoreEmojiMsgId] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  // Mobile long-press
+  const longPressRef = useRef(null);
+  const [mobileMsgMenu, setMobileMsgMenu] = useState(null);
 
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -319,6 +382,7 @@ export default function ChatPanel({ roomId }) {
     clearTimeout(typingTimeoutRef.current);
     setIsTyping(false);
     socket.emit('chat:typing', { roomId, isTyping: false });
+    setReplyTo(null);
 
     if (hasFile) {
       setUploading(true);
@@ -335,11 +399,12 @@ export default function ChatPanel({ roomId }) {
       } finally { setUploading(false); }
     } else {
       const tempId = `temp-${Date.now()}`;
-      const tempMsg = { _id: tempId, type: 'text', content: input.trim(), sender: user, createdAt: new Date().toISOString(), _pending: true };
+      const replyRef = replyTo ? { id: replyTo._id, name: replyTo.sender?.name, preview: replyTo.content?.slice(0, 60) } : undefined;
+      const tempMsg = { _id: tempId, type: 'text', content: input.trim(), sender: user, createdAt: new Date().toISOString(), _pending: true, replyTo: replyRef };
       setMessages((prev) => [...prev, tempMsg]);
       setPendingIds((ids) => new Set([...ids, tempId]));
       const encrypted = await encryptMessage(input.trim(), roomId);
-      socket.emit('chat:message', { roomId, content: encrypted, clientMsgId: tempId });
+      socket.emit('chat:message', { roomId, content: encrypted, clientMsgId: tempId, replyTo: replyRef });
       setInput('');
       setTimeout(() => {
         setMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -373,7 +438,15 @@ export default function ChatPanel({ roomId }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Build render list with date dividers
+  // Mobile long press
+  const handleTouchStart = (msgId) => {
+    longPressRef.current = setTimeout(() => { setMobileMsgMenu(msgId); }, 500);
+  };
+  const handleTouchEnd = () => {
+    clearTimeout(longPressRef.current);
+  };
+
+  // Build render list
   const renderedMessages = [];
   let lastDate = null;
   messages.forEach((msg, idx) => {
@@ -388,7 +461,8 @@ export default function ChatPanel({ roomId }) {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-[#282a2d]">
+    <div className="flex flex-col h-full bg-[#282a2d]"
+      onClick={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); setMobileMsgMenu(null); }}>
 
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
@@ -412,12 +486,22 @@ export default function ChatPanel({ roomId }) {
           const senderColor = getParticipantColor(msg.sender?._id || msg.sender || 'default');
           const senderName = msg.sender?.name || 'Unknown';
           const initials = senderName.charAt(0).toUpperCase();
+          const isHovered = hoveredMsgId === msg._id;
+          const isMobileMenuOpen = mobileMsgMenu === msg._id;
 
           if (msg.type === 'system') return <SystemMessage key={key} content={msg.content} />;
 
           return (
-            <div key={key} className="group relative flex items-start gap-3 px-4 py-2 hover:bg-white/4 transition-colors">
-              {/* Avatar circle */}
+            <div key={key}
+              className="group relative flex items-start gap-3 px-4 py-2 hover:bg-white/4 transition-colors"
+              onMouseEnter={() => !isPending && setHoveredMsgId(msg._id)}
+              onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
+              onTouchStart={() => handleTouchStart(msg._id)}
+              onTouchEnd={handleTouchEnd}
+              onTouchMove={handleTouchEnd}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Avatar */}
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5 select-none"
                 style={{ background: senderColor.bg, color: senderColor.text }}
@@ -427,7 +511,7 @@ export default function ChatPanel({ roomId }) {
 
               {/* Message content */}
               <div className="flex-1 min-w-0">
-                {/* Name + time row */}
+                {/* Name + time */}
                 <div className="flex items-baseline gap-2 mb-0.5">
                   <span className="text-sm font-semibold leading-none"
                     style={{ color: own ? '#8ab4f8' : senderColor.bg }}>
@@ -435,11 +519,19 @@ export default function ChatPanel({ roomId }) {
                   </span>
                   <span className="text-[10px] text-[#9aa0a6] leading-none">
                     {formatTime(msg.createdAt)}
-                    {isPending && <span className="ml-1 italic">sending…</span>}
+                    {isPending && <span className="ml-1 italic opacity-70">sending…</span>}
                   </span>
                 </div>
 
-                {/* Message text */}
+                {/* Reply quote */}
+                {msg.replyTo && (
+                  <div className="mb-1 px-2 py-1 rounded-lg bg-white/6 border-l-2 border-[#8ab4f8]/60">
+                    <p className="text-[10px] font-semibold text-[#8ab4f8] mb-0.5">{msg.replyTo.name}</p>
+                    <p className="text-xs text-[#9aa0a6] truncate">{msg.replyTo.preview}</p>
+                  </div>
+                )}
+
+                {/* Message text / file */}
                 {msg.type === 'file' ? (
                   <div>
                     {msg.content && (
@@ -450,7 +542,7 @@ export default function ChatPanel({ roomId }) {
                     <FileCard file={msg.file} baseUrl={baseUrl} />
                   </div>
                 ) : (
-                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${isPending ? 'text-[#9aa0a6]' : 'text-[#e8eaed]'}`}>
+                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words select-text ${isPending ? 'text-[#9aa0a6]' : 'text-[#e8eaed]'}`}>
                     {msg.content}
                   </p>
                 )}
@@ -460,9 +552,48 @@ export default function ChatPanel({ roomId }) {
                   onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
-              {/* Hover reaction bar */}
+              {/* Hover actions (desktop) */}
               {!isPending && (
-                <ReactionBar messageId={msg._id} userId={user?._id} onToggle={handleToggleReaction} />
+                <MessageActions
+                  msg={msg}
+                  userId={user?._id}
+                  onReact={handleToggleReaction}
+                  onReply={(m) => { setReplyTo(m); inputRef.current?.focus(); }}
+                  onCopy={() => {}}
+                  visible={isHovered}
+                  onMore={() => setMoreEmojiMsgId(moreEmojiMsgId === msg._id ? null : msg._id)}
+                  showMore={moreEmojiMsgId === msg._id}
+                  onCloseMore={() => setMoreEmojiMsgId(null)}
+                />
+              )}
+
+              {/* Mobile long-press menu */}
+              {isMobileMenuOpen && (
+                <div className="absolute right-2 top-0 z-30 bg-[#303134] rounded-2xl shadow-2xl py-2 min-w-[180px] border border-white/8">
+                  <p className="px-4 py-1 text-[10px] text-[#9aa0a6] uppercase tracking-widest">React</p>
+                  <div className="flex gap-2 px-4 py-2">
+                    {EMOJI_LIST.map(emoji => (
+                      <button key={emoji} type="button"
+                        onClick={() => { handleToggleReaction(msg._id, emoji); setMobileMsgMenu(null); }}
+                        className="text-xl hover:scale-125 transition-transform">
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-px bg-white/8 mx-2 my-1" />
+                  <button onClick={() => { setReplyTo(msg); inputRef.current?.focus(); setMobileMsgMenu(null); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#e8eaed] hover:bg-white/8">
+                    <CornerUpLeft className="w-4 h-4 text-[#9aa0a6]" /> Reply
+                  </button>
+                  <button onClick={() => {
+                    const text = msg.type === 'file' ? (msg.file?.originalName || '') : (msg.content || '');
+                    navigator.clipboard.writeText(text).catch(() => {});
+                    setMobileMsgMenu(null);
+                  }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#e8eaed] hover:bg-white/8">
+                    <Copy className="w-4 h-4 text-[#9aa0a6]" /> Copy text
+                  </button>
+                </div>
               )}
             </div>
           );
@@ -472,15 +603,18 @@ export default function ChatPanel({ roomId }) {
         <div ref={bottomRef} className="h-2" />
       </div>
 
+      {/* Reply quote preview */}
+      <ReplyQuote msg={replyTo} onClear={() => setReplyTo(null)} />
+
       {/* File preview */}
       {filePreview && (
-        <div className="mx-3 mb-2 p-2.5 rounded-xl bg-[#3c4043] flex items-center justify-between gap-2">
+        <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-[#3c4043] flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             {selectedFile?.type.startsWith('image/') ? (
               <img src={filePreview} alt="preview"
-                className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-white/8 flex items-center justify-center flex-shrink-0">
                 <FileTypeIcon mimeType={selectedFile?.type} />
               </div>
             )}
@@ -496,33 +630,35 @@ export default function ChatPanel({ roomId }) {
         </div>
       )}
 
-      {/* Input area */}
+      {/* Input area — pill container */}
       <div className="px-3 pb-3 pt-1">
-        <div className="flex items-end gap-2 bg-[#3c4043] rounded-2xl px-3 py-2 focus-within:ring-1 focus-within:ring-[#8ab4f8]/40 transition-all">
+        <div className="flex items-end gap-2 bg-[#3c4043] rounded-[28px] px-3 py-2 focus-within:ring-2 focus-within:ring-[#8ab4f8]/30 transition-all">
           <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
+          {/* Attach button — pill */}
           <button type="button" onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-white hover:bg-white/8 transition-all flex-shrink-0 self-center">
-            <Paperclip className="w-4 h-4" />
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/8 hover:bg-white/15 text-[#9aa0a6] hover:text-white transition-all flex-shrink-0 self-end mb-0.5">
+            <Paperclip className="w-3.5 h-3.5" />
           </button>
 
+          {/* Textarea */}
           <textarea
             ref={inputRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
-            placeholder="Send a message to everyone…"
+            placeholder="Message everyone…"
             rows={1}
             className="flex-1 bg-transparent text-sm text-[#e8eaed] placeholder-[#9aa0a6] resize-none focus:outline-none py-1.5 min-h-[28px] max-h-[100px] leading-relaxed"
             style={{ height: 'auto' }}
             onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`; }}
           />
 
+          {/* Send button — pill */}
           <button type="button" onClick={sendMessage} disabled={uploading || (!input.trim() && !selectedFile)}
-            className="p-2 rounded-xl transition-all flex-shrink-0 self-center disabled:opacity-30
-              bg-[#8ab4f8] hover:bg-[#aecbfa] disabled:bg-[#3c4043] text-[#202124] disabled:text-[#9aa0a6]">
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-all flex-shrink-0 self-end mb-0.5 disabled:opacity-30
+              bg-[#8ab4f8] hover:bg-[#aecbfa] disabled:bg-white/10 text-[#202124] disabled:text-[#9aa0a6]">
             {uploading
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Send className="w-4 h-4" />}
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Send className="w-3.5 h-3.5" />}
           </button>
         </div>
-        <p className="text-[10px] text-[#9aa0a6] text-center mt-1.5">Press Enter to send · Shift+Enter for new line</p>
       </div>
     </div>
   );

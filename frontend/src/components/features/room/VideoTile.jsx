@@ -6,6 +6,23 @@ import {
 import useAudioAnalyser from '@/hooks/useAudioAnalyser';
 import { getParticipantColor } from '@/utils/participantColors';
 
+// ─── Hand raise badge — bounces then settles ────────────────────────────────
+function HandRaiseBadge() {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    setSettled(false);
+    const t = setTimeout(() => setSettled(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className={`absolute top-3 left-3 z-20 transition-all ${settled ? '' : 'animate-bounce'}`}>
+      <div className="bg-amber-500 text-white p-2 rounded-full shadow-2xl border border-amber-400/60 select-none">
+        <Hand className="w-4 h-4" />
+      </div>
+    </div>
+  );
+}
+
 export default function VideoTile({
   stream,
   user,
@@ -137,15 +154,9 @@ export default function VideoTile({
         </div>
       )}
 
-      {/* Hand raised badge */}
-      {isHandRaised && (
-        <div className="absolute top-3 left-3 z-20 animate-bounce">
-          <div className="bg-amber-500 text-white px-3 py-1.5 rounded-full shadow-2xl flex items-center justify-center gap-1.5 border border-amber-400 select-none">
-            <Hand className="w-4 h-4" />
-            <span className="text-xs font-bold leading-none">{isLocal ? 'You' : user?.name?.split(' ')[0] || 'Participant'}</span>
-          </div>
-        </div>
-      )}
+      {/* Hand raised badge — icon only, bounce settles to static after 3s */}
+      {isHandRaised && <HandRaiseBadge />}
+
 
       {/* Hover controls */}
       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-3 right-3 flex items-center gap-1.5 z-30">

@@ -575,7 +575,26 @@ function CtrlBtn({ onClick, active, danger, title, children, badge }) {
   );
 }
 
-// ─── Mic button group — [dots/bars][MIC] (Google Meet style) ─────────────────
+// ─── Shared device picker dropdown ────────────────────────────────────────────
+function DevicePicker({ label, devices, currentId, onSelect, onClose }) {
+  return (
+    <div className="absolute bottom-[calc(100%+12px)] left-0 bg-[#303134] rounded-2xl shadow-2xl py-2 z-[250] min-w-[240px]">
+      <p className="px-4 py-1.5 text-[10px] text-[#9aa0a6] uppercase tracking-widest font-semibold">{label}</p>
+      {devices.length === 0
+        ? <p className="px-4 py-3 text-sm text-[#9aa0a6]">No {label.toLowerCase()} detected</p>
+        : devices.map(d => (
+          <button key={d.deviceId} onClick={() => { onSelect(d.deviceId); onClose(); }}
+            className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3
+              ${d.deviceId === currentId ? 'text-[#8ab4f8] bg-[#8ab4f8]/8' : 'text-[#e8eaed] hover:bg-white/8'}`}>
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.deviceId === currentId ? 'bg-[#8ab4f8]' : 'border border-white/20'}`} />
+            <span className="truncate">{d.label || label}</span>
+          </button>
+        ))}
+    </div>
+  );
+}
+
+// ─── Mic split-pill: [^+bars | MIC] ──────────────────────────────────────────
 function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSelectDevice }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -586,50 +605,44 @@ function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSe
     return () => document.removeEventListener('mousedown', h);
   }, [open]);
   return (
-    <div ref={ref} className="relative flex items-center gap-1">
-      {/* Left: 3 dots normally, animated bars when speaking — also opens device picker */}
-      <button onClick={() => setOpen(v => !v)} title="Audio devices"
-        className={`w-10 h-10 rounded-full flex items-end justify-center gap-[3px] pb-[9px] transition-colors
-          ${open ? 'bg-[#8ab4f8]/20' : 'bg-[#3c4043] hover:bg-[#4a4d51]'}`}>
-        {isSpeaking && audioEnabled ? (
-          <>
-            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-1" />
-            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-2" />
-            <span className="w-[3px] rounded-full bg-[#8ab4f8] speak-bar-3" />
-          </>
-        ) : (
-          <>
-            <span className="w-[5px] h-[5px] rounded-full bg-white/70" />
-            <span className="w-[5px] h-[5px] rounded-full bg-white/70" />
-            <span className="w-[5px] h-[5px] rounded-full bg-white/70" />
-          </>
-        )}
-      </button>
-      {/* Main mic toggle button */}
-      <CtrlBtn onClick={onToggle} danger={!audioEnabled} title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}>
-        {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
-      </CtrlBtn>
-      {/* Vertical device list above */}
-      {open && (
-        <div className="absolute bottom-[calc(100%+12px)] left-0 bg-[#303134] rounded-2xl shadow-2xl py-2 z-[250] min-w-[240px]">
-          <p className="px-4 py-1.5 text-[10px] text-[#9aa0a6] uppercase tracking-widest font-semibold">Microphone</p>
-          {devices.length === 0
-            ? <p className="px-4 py-3 text-sm text-[#9aa0a6]">No microphones detected</p>
-            : devices.map(d => (
-              <button key={d.deviceId} onClick={() => { onSelectDevice(d.deviceId); setOpen(false); }}
-                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3
-                  ${d.deviceId === currentId ? 'text-[#8ab4f8] bg-[#8ab4f8]/8' : 'text-[#e8eaed] hover:bg-white/8'}`}>
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.deviceId === currentId ? 'bg-[#8ab4f8]' : 'border border-white/20'}`} />
-                <span className="truncate">{d.label || 'Microphone'}</span>
-              </button>
-            ))}
-        </div>
-      )}
+    <div ref={ref} className="relative">
+      {/* Split pill container */}
+      <div className={`flex items-center h-14 rounded-full overflow-hidden transition-colors ${!audioEnabled ? 'bg-[#ea4335]' : 'bg-[#3c4043]'}`}>
+        {/* Left half: ChevronUp + indicator (dots/bars) */}
+        <button onClick={() => setOpen(v => !v)} title="Audio devices"
+          className={`flex flex-col items-center justify-center w-10 h-full transition-colors
+            border-r ${!audioEnabled ? 'border-white/20' : 'border-white/10'}
+            ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
+          <ChevronUp className={`w-3 h-3 mb-0.5 ${open ? 'text-white' : 'text-white/50'}`} />
+          {/* Bars/dots indicator — centered */}
+          <div className="flex items-end justify-center gap-[2.5px] h-3.5">
+            {isSpeaking && audioEnabled ? (
+              <>
+                <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-1" style={{ minHeight: '2px' }} />
+                <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-2" style={{ minHeight: '2px' }} />
+                <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-3" style={{ minHeight: '2px' }} />
+              </>
+            ) : (
+              <>
+                <span className="w-[4px] h-[4px] rounded-full bg-white/50" />
+                <span className="w-[4px] h-[4px] rounded-full bg-white/50" />
+                <span className="w-[4px] h-[4px] rounded-full bg-white/50" />
+              </>
+            )}
+          </div>
+        </button>
+        {/* Right half: mic icon */}
+        <button onClick={onToggle} title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}
+          className="flex items-center justify-center w-14 h-full hover:bg-white/10 transition-colors text-white">
+          {audioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+        </button>
+      </div>
+      {open && <DevicePicker label="Microphone" devices={devices} currentId={currentId} onSelect={onSelectDevice} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-// ─── Camera button group — [^][CAM] (Google Meet style) ─────────────────────
+// ─── Camera split-pill: [^ | CAM] ────────────────────────────────────────────
 function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -640,33 +653,23 @@ function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }
     return () => document.removeEventListener('mousedown', h);
   }, [open]);
   return (
-    <div ref={ref} className="relative flex items-center gap-1">
-      {/* Left: up-arrow opens device picker */}
-      <button onClick={() => setOpen(v => !v)} title="Camera devices"
-        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-          ${open ? 'bg-[#8ab4f8]/20 text-[#8ab4f8]' : 'bg-[#3c4043] hover:bg-[#4a4d51] text-white'}`}>
-        <ChevronUp className="w-4 h-4" />
-      </button>
-      {/* Main camera toggle button */}
-      <CtrlBtn onClick={onToggle} danger={!videoEnabled} title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}>
-        {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
-      </CtrlBtn>
-      {/* Vertical device list above */}
-      {open && (
-        <div className="absolute bottom-[calc(100%+12px)] left-0 bg-[#303134] rounded-2xl shadow-2xl py-2 z-[250] min-w-[240px]">
-          <p className="px-4 py-1.5 text-[10px] text-[#9aa0a6] uppercase tracking-widest font-semibold">Camera</p>
-          {devices.length === 0
-            ? <p className="px-4 py-3 text-sm text-[#9aa0a6]">No cameras detected</p>
-            : devices.map(d => (
-              <button key={d.deviceId} onClick={() => { onSelectDevice(d.deviceId); setOpen(false); }}
-                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3
-                  ${d.deviceId === currentId ? 'text-[#8ab4f8] bg-[#8ab4f8]/8' : 'text-[#e8eaed] hover:bg-white/8'}`}>
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.deviceId === currentId ? 'bg-[#8ab4f8]' : 'border border-white/20'}`} />
-                <span className="truncate">{d.label || 'Camera'}</span>
-              </button>
-            ))}
-        </div>
-      )}
+    <div ref={ref} className="relative">
+      {/* Split pill container */}
+      <div className={`flex items-center h-14 rounded-full overflow-hidden transition-colors ${!videoEnabled ? 'bg-[#ea4335]' : 'bg-[#3c4043]'}`}>
+        {/* Left half: ChevronUp */}
+        <button onClick={() => setOpen(v => !v)} title="Camera devices"
+          className={`flex items-center justify-center w-10 h-full transition-colors
+            border-r ${!videoEnabled ? 'border-white/20' : 'border-white/10'}
+            ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
+          <ChevronUp className={`w-4 h-4 ${open ? 'text-white' : 'text-white/60'}`} />
+        </button>
+        {/* Right half: camera icon */}
+        <button onClick={onToggle} title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}
+          className="flex items-center justify-center w-14 h-full hover:bg-white/10 transition-colors text-white">
+          {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+        </button>
+      </div>
+      {open && <DevicePicker label="Camera" devices={devices} currentId={currentId} onSelect={onSelectDevice} onClose={() => setOpen(false)} />}
     </div>
   );
 }
@@ -1116,13 +1119,24 @@ export default function RoomPage() {
           </div>
         </div>
 
-        {/* Right — timer + participant count */}
-        <div className="flex items-center gap-2 w-[220px] flex-shrink-0 justify-end">
+        {/* Right — timer + participant count pill */}
+        <div className="flex items-center gap-2.5 w-[220px] flex-shrink-0 justify-end">
           <span className="text-sm font-mono font-medium text-[#e8eaed]">{duration}</span>
-          <button onClick={() => togglePanel(PANELS.participants)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full hover:bg-white/8 transition-colors">
-            <Users className="w-3.5 h-3.5 text-[#9aa0a6]" />
-            <span className="text-xs text-[#9aa0a6] font-medium">{peerList.length + 1}</span>
+          <button onClick={() => togglePanel(PANELS.participants)} title="Show participants"
+            className="flex items-center h-8 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] transition-colors overflow-hidden">
+            {/* User avatars (stacked) */}
+            {[user, ...Object.values(peers).slice(0, 2).map(p => p?.user)].filter(Boolean).map((u, i) => {
+              const c = getParticipantColor(u?._id || u?.name || String(i));
+              return (
+                <div key={`avatar-${i}`}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 border-2 border-[#3c4043]"
+                  style={{ background: c.bg, color: c.text, marginLeft: i > 0 ? '-8px' : '0' }}
+                  title={u?.name}>
+                  {u?.name?.charAt(0).toUpperCase() || '?'}
+                </div>
+              );
+            })}
+            <span className="text-xs font-semibold text-[#e8eaed] pl-2 pr-3">{peerList.length + 1}</span>
           </button>
         </div>
       </header>
@@ -1227,16 +1241,20 @@ export default function RoomPage() {
             <MessageSquare className="w-6 h-6" />
           </CtrlBtn>
 
+          {/* Layout */}
+          <CtrlBtn onClick={() => setShowLayoutPicker(v => !v)} active={showLayoutPicker} title="Change layout (L)">
+            <LayoutGrid className="w-6 h-6" />
+          </CtrlBtn>
+
           {/* More */}
           <CtrlBtn onClick={() => setShowMore(v => !v)} active={showMore} title="More options">
             <MoreHorizontal className="w-6 h-6" />
           </CtrlBtn>
 
-          {/* Leave — red pill */}
-          <button onClick={() => setShowLeave(true)}
-            className="flex items-center gap-2 pl-5 pr-6 h-14 rounded-full bg-[#ea4335] hover:bg-[#d33c2c] text-white font-medium text-sm transition-colors flex-shrink-0 ml-2">
-            <PhoneOff className="w-5 h-5 flex-shrink-0" />
-            <span>Leave</span>
+          {/* Leave — icon only red pill */}
+          <button onClick={() => setShowLeave(true)} title="Leave call"
+            className="flex items-center justify-center w-14 h-14 rounded-full bg-[#ea4335] hover:bg-[#d33c2c] text-white transition-colors flex-shrink-0 ml-2">
+            <PhoneOff className="w-5 h-5" />
           </button>
         </div>
 
