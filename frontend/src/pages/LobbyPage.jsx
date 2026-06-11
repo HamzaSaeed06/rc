@@ -53,74 +53,66 @@ export default function LobbyPage() {
     if (camPerm === 'granted') startCamera();
   }, [camPerm]); // eslint-disable-line
 
-  // ── Canvas visualizer draw loop (runs every rAF — no React state) ───────────
+  // ── Canvas visualizer draw loop ─────────────────────────────────────────────
+  // 9 bars, symmetric up+down from center, fillRect (max browser compat)
+  const NUM_BARS = 9;
+  const BAR_W    = 3;
+  const BAR_GAP  = 2;
+
   const drawVisualizer = useCallback((analyser, dataArray) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
+    const ctx  = canvas.getContext('2d');
+    const W    = canvas.width;
+    const H    = canvas.height;
 
     analyser.getByteFrequencyData(dataArray);
-
     ctx.clearRect(0, 0, W, H);
 
-    const NUM_BARS = 18;
-    const BAR_W    = 2;
-    const GAP      = 1.5;
-    const totalW   = NUM_BARS * (BAR_W + GAP) - GAP;
-    const startX   = (W - totalW) / 2;
-    const centerY  = H / 2;
-    const maxHalf  = H / 2 - 2;   // max bar half-height
-
-    // Sample evenly across the frequency bins
-    const step = Math.floor(dataArray.length / NUM_BARS);
+    const totalW  = NUM_BARS * BAR_W + (NUM_BARS - 1) * BAR_GAP;
+    const startX  = Math.floor((W - totalW) / 2);
+    const centerY = H / 2;
+    const maxHalf = centerY - 3;                        // leave 3px padding top/bottom
+    const step    = Math.max(1, Math.floor(dataArray.length / NUM_BARS));
 
     for (let i = 0; i < NUM_BARS; i++) {
-      const val  = dataArray[i * step] / 255;          // 0..1
-      const half = Math.max(2, val * maxHalf);         // min 2px so bars always visible
-      const x    = startX + i * (BAR_W + GAP);
+      const val  = dataArray[i * step] / 255;
+      const half = Math.max(3, Math.round(val * maxHalf)); // min 3px always visible
+      const x    = startX + i * (BAR_W + BAR_GAP);
 
-      // gradient: bright white core → transparent edges
-      const grad = ctx.createLinearGradient(x, centerY - half, x, centerY + half);
-      grad.addColorStop(0,   'rgba(255,255,255,0.15)');
-      grad.addColorStop(0.3, 'rgba(255,255,255,0.9)');
-      grad.addColorStop(0.5, '#ffffff');
-      grad.addColorStop(0.7, 'rgba(255,255,255,0.9)');
-      grad.addColorStop(1,   'rgba(255,255,255,0.15)');
+      // white gradient: edges fade, center bright
+      const grad = ctx.createLinearGradient(0, centerY - half, 0, centerY + half);
+      grad.addColorStop(0,    'rgba(255,255,255,0.2)');
+      grad.addColorStop(0.35, 'rgba(255,255,255,0.95)');
+      grad.addColorStop(0.5,  '#ffffff');
+      grad.addColorStop(0.65, 'rgba(255,255,255,0.95)');
+      grad.addColorStop(1,    'rgba(255,255,255,0.2)');
 
       ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(x, centerY - half, BAR_W, half * 2, 2);
-      ctx.fill();
+      ctx.fillRect(x, centerY - half, BAR_W, half * 2);
     }
 
     animRef.current = requestAnimationFrame(() => drawVisualizer(analyser, dataArray));
-  }, []);
+  }, []); // eslint-disable-line
 
   const drawSilence = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
+    const ctx   = canvas.getContext('2d');
+    const W     = canvas.width;
+    const H     = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    const NUM_BARS = 18;
-    const BAR_W    = 2;
-    const GAP      = 1.5;
-    const totalW   = NUM_BARS * (BAR_W + GAP) - GAP;
-    const startX   = (W - totalW) / 2;
-    const centerY  = H / 2;
+    const totalW  = NUM_BARS * BAR_W + (NUM_BARS - 1) * BAR_GAP;
+    const startX  = Math.floor((W - totalW) / 2);
+    const centerY = H / 2;
 
     for (let i = 0; i < NUM_BARS; i++) {
-      const x = startX + i * (BAR_W + GAP);
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.beginPath();
-      ctx.roundRect(x, centerY - 2, BAR_W, 4, 2);
-      ctx.fill();
+      const x = startX + i * (BAR_W + BAR_GAP);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(x, centerY - 2, BAR_W, 4);
     }
-  }, []);
+  }, []); // eslint-disable-line
 
   // ── Start audio analyser ────────────────────────────────────────────────────
   const startAudioAnalyser = useCallback((stream) => {
@@ -296,11 +288,11 @@ export default function LobbyPage() {
             flex items-end justify-between">
 
             {/* 🔵 Audio visualizer — circular blue box, bottom-left */}
-            <div className="w-12 h-12 rounded-full bg-[#4f46e5] flex items-center justify-center shadow-lg flex-shrink-0">
+            <div className="w-14 h-14 rounded-full bg-[#4f46e5] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
               <canvas
                 ref={canvasRef}
-                width={44}
-                height={44}
+                width={52}
+                height={52}
                 className="block"
               />
             </div>
