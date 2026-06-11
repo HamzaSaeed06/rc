@@ -40,9 +40,11 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch {
         localStorage.removeItem('accessToken');
-        // Only hard-redirect if not already on an auth page to prevent reload loops
+        // Only redirect if on a protected page — never redirect from public pages
         const path = window.location.pathname;
-        if (!path.startsWith('/login') && !path.startsWith('/register')) {
+        const publicPaths = ['/', '/login', '/register'];
+        const isPublic = publicPaths.includes(path) || publicPaths.some(p => p !== '/' && path.startsWith(p));
+        if (!isPublic) {
           window.location.href = '/login';
         }
       }

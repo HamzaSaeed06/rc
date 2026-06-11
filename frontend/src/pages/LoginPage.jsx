@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Video, Mail, Lock, Loader2, ArrowLeft } from 'lucide-react';
+import { Video, Mail, Lock, Loader2 } from 'lucide-react';
 import useAuthStore from '@/store/slices/authStore';
 
 function GoogleIcon() {
@@ -45,107 +45,73 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0e0e16] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glows */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-indigo-600/8 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-violet-600/8 rounded-full blur-[100px]" />
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Back to home */}
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300 mb-8 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to home
-        </Link>
-
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-xl shadow-indigo-600/30">
-            <Video className="w-7 h-7 text-white" />
+    <div className="min-h-screen bg-[#202124] flex flex-col">
+      {/* Nav */}
+      <nav className="flex items-center px-6 py-3 border-b border-white/8">
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-9 h-9 bg-[#4f46e5] rounded-xl flex items-center justify-center shadow-lg">
+            <Video className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to your SyncSpace account</p>
+          <span className="text-lg font-semibold text-white">SyncSpace</span>
         </div>
+      </nav>
 
-        {/* Card */}
-        <div className="bg-[#141420] border border-white/10 rounded-2xl p-8 shadow-2xl">
-
-          {/* Google sign-in */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-800 font-semibold text-sm px-4 py-3 rounded-xl border border-gray-200 transition-all mb-5 disabled:opacity-60 shadow-sm"
-          >
-            {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
-            Continue with Google
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-white/8" />
-            <span className="text-xs text-gray-600 font-medium">or sign in with email</span>
-            <div className="flex-1 h-px bg-white/8" />
+      {/* Form */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-white mb-2">Sign in</h1>
+            <p className="text-sm text-[#9aa0a6]">to continue to SyncSpace</p>
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/25 text-red-400 text-sm rounded-xl px-4 py-3 mb-5">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  className="w-full bg-[#1a1a26] border border-white/10 text-white placeholder-gray-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                <input
-                  type="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full bg-[#1a1a26] border border-white/10 text-white placeholder-gray-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-                  required
-                  autoComplete="current-password"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/50 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? 'Signing in…' : 'Sign In'}
+          <div className="bg-[#303134] border border-[#5f6368]/40 rounded-2xl p-7 shadow-2xl">
+            {/* Google */}
+            <button type="button" onClick={handleGoogle} disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-[#202124] font-semibold text-sm px-4 py-2.5 rounded-xl border border-gray-200 transition-all mb-5 disabled:opacity-60 shadow-sm">
+              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <GoogleIcon />}
+              Continue with Google
             </button>
-          </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-              Create one free
-            </Link>
-          </p>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex-1 h-px bg-[#5f6368]/40" />
+              <span className="text-xs text-[#9aa0a6]">or</span>
+              <div className="flex-1 h-px bg-[#5f6368]/40" />
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6] pointer-events-none" />
+                <input type="email" name="email" value={form.email} onChange={handleChange}
+                  placeholder="Email address"
+                  className="w-full bg-[#202124] border border-[#5f6368] hover:border-[#8ab4f8] focus:border-[#8ab4f8] text-white placeholder-[#9aa0a6] rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none transition-colors"
+                  required autoComplete="email" />
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9aa0a6] pointer-events-none" />
+                <input type="password" name="password" value={form.password} onChange={handleChange}
+                  placeholder="Password"
+                  className="w-full bg-[#202124] border border-[#5f6368] hover:border-[#8ab4f8] focus:border-[#8ab4f8] text-white placeholder-[#9aa0a6] rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none transition-colors"
+                  required autoComplete="current-password" />
+              </div>
+
+              <button type="submit" disabled={loading}
+                className="w-full bg-[#4f46e5] hover:bg-[#4338ca] disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-1 shadow-lg shadow-indigo-600/20">
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loading ? 'Signing in…' : 'Sign In'}
+              </button>
+            </form>
+
+            <p className="text-center text-sm text-[#9aa0a6] mt-5">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-[#8ab4f8] hover:underline font-medium">Create account</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

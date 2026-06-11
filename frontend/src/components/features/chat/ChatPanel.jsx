@@ -67,7 +67,7 @@ function Lightbox({ src, onClose }) {
         className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
         onClick={(e) => e.stopPropagation()} />
       <button onClick={onClose}
-        className="absolute top-4 right-4 bg-[#1a1a26] border border-white/10 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-[#22223a] transition-colors">
+        className="absolute top-4 right-4 bg-[#202124] border border-white/10 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-[#22223a] transition-colors">
         <XIcon className="w-5 h-5" />
       </button>
     </div>
@@ -400,7 +400,7 @@ export default function ChatPanel({ roomId }) {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-[#12121c]">
+    <div className="flex flex-col h-full bg-[#282a2d]">
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar space-y-0.5">
         {messages.length === 0 && (

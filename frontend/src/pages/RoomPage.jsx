@@ -113,7 +113,7 @@ function ToastList({ toasts }) {
         <div key={t.id} className={`text-xs font-semibold px-4 py-2 rounded-full shadow-xl border backdrop-blur-md animate-fade-in
           ${t.type === 'join' ? 'bg-green-900/80 border-green-500/40 text-green-300'
             : t.type === 'leave' ? 'bg-red-900/80 border-red-500/40 text-red-300'
-              : 'bg-[#1e1e2e]/90 border-white/10 text-white'}`}>
+              : 'bg-[#303134]/90 border-white/10 text-white'}`}>
           {t.msg}
         </div>
       ))}
@@ -136,7 +136,7 @@ function Av({ userId, name, size = 8 }) {
 function LeaveModal({ isHost, onEnd, onLeave, onCancel }) {
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[300] p-4 backdrop-blur-sm" onClick={onCancel}>
-      <div className="bg-[#1a1a26] border border-white/12 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#202124] border border-white/12 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-bold text-white mb-1">{isHost ? 'Leave or end?' : 'Leave meeting?'}</h3>
         <p className="text-sm text-gray-400 mb-5">{isHost ? 'You can end for everyone or just leave.' : 'Others will continue the meeting.'}</p>
         <div className="flex flex-col gap-2">
@@ -153,7 +153,7 @@ function LeaveModal({ isHost, onEnd, onLeave, onCancel }) {
 function LayoutPicker({ current, onChange, onClose }) {
   return (
     <div className="fixed inset-0 z-[300] flex items-end justify-center pb-24" onClick={onClose}>
-      <div className="bg-[#1a1a26] border border-white/12 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-slide-up mx-4"
+      <div className="bg-[#202124] border border-white/12 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-slide-up mx-4"
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-white">Change layout</h3>
@@ -198,7 +198,7 @@ function ParticipantsPanel({ user, room, peers, peerStates, raisedHands, isHandR
   const total = peerList.length + 1;
 
   return (
-    <div className="flex flex-col h-full bg-[#12121c]">
+    <div className="flex flex-col h-full bg-[#282a2d]">
       <div className="px-5 py-4 border-b border-white/8">
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">{total} participant{total !== 1 ? 's' : ''}</p>
       </div>
@@ -333,7 +333,7 @@ function FilesPanel({ roomId }) {
   const getFilePath = (f) => f.fileName || f.file?.fileName || '';
 
   return (
-    <div className="flex flex-col h-full bg-[#12121c]">
+    <div className="flex flex-col h-full bg-[#282a2d]">
       <div className="px-5 py-4 border-b border-white/8">
         <p className="text-sm font-bold text-white">Shared Files</p>
         <p className="text-xs text-gray-500 mt-0.5">{files.length} file{files.length !== 1 ? 's' : ''}</p>
@@ -393,7 +393,7 @@ function MoreMenu({ onRecord, isRecording, onWhiteboard, onFiles, isScreenSharin
   ];
 
   return (
-    <div className="fixed bottom-20 right-6 w-56 bg-[#1a1a28] border border-white/12 rounded-2xl shadow-2xl overflow-hidden z-[400] animate-slide-up">
+    <div className="fixed bottom-20 right-6 w-56 bg-[#303134] border border-white/12 rounded-2xl shadow-2xl overflow-hidden z-[400] animate-slide-up">
       {items.map((item, i) => (
         <button key={i} onClick={() => { item.action?.(); onClose(); }}
           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-200 hover:bg-white/8 transition-colors text-left">
@@ -432,7 +432,7 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-[#141420] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 animate-scale-in">
+      <div className="bg-[#303134] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 animate-scale-in">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-white flex items-center gap-2"><Settings className="w-5 h-5" /> Settings</h2>
           <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
@@ -442,7 +442,7 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }
             <label className="text-xs text-gray-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider font-semibold"><Mic className="w-3.5 h-3.5" /> Microphone</label>
             <div className="relative">
               <select value={selectedAudio} onChange={e => setSelectedAudio(e.target.value)}
-                className="w-full bg-[#1a1a26] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-indigo-500/50">
+                className="w-full bg-[#202124] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-indigo-500/50">
                 {audioDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${d.deviceId.slice(0, 5)}`}</option>)}
                 {audioDevices.length === 0 && <option value="">No microphone found</option>}
               </select>
@@ -453,7 +453,7 @@ function SettingsModal({ onClose, switchDevice, currentVideoId, currentAudioId }
             <label className="text-xs text-gray-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider font-semibold"><Video className="w-3.5 h-3.5" /> Camera</label>
             <div className="relative">
               <select value={selectedVideo} onChange={e => setSelectedVideo(e.target.value)}
-                className="w-full bg-[#1a1a26] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-indigo-500/50">
+                className="w-full bg-[#202124] border border-white/10 text-white text-sm rounded-xl px-3 py-3 pr-8 appearance-none focus:outline-none focus:border-indigo-500/50">
                 {videoDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${d.deviceId.slice(0, 5)}`}</option>)}
                 {videoDevices.length === 0 && <option value="">No camera found</option>}
               </select>
@@ -558,7 +558,7 @@ function SpeakerView({ peers, localStream, screenStream, isScreenSharing, audioE
 
   return (
     <div className={`flex-1 overflow-hidden p-2 flex ${isHorizontalSide ? 'flex-col' : 'flex-col lg:flex-row'} gap-2`}>
-      <div className="flex-1 rounded-2xl overflow-hidden min-h-0 relative bg-[#141420] border border-white/5 shadow-inner">
+      <div className="flex-1 rounded-2xl overflow-hidden min-h-0 relative bg-[#303134] border border-white/5 shadow-inner">
         <VideoTile stream={mainStream} user={mainUser} isLocal={mainIsLocal} muted={mainIsLocal}
           videoDisabled={mainSharing ? false : (mainIsLocal ? !videoEnabled : peerStates[mainPeerId]?.videoEnabled === false)}
           isHandRaised={mainIsLocal ? isHandRaised : raisedHands[mainPeerId] === true}
@@ -571,7 +571,7 @@ function SpeakerView({ peers, localStream, screenStream, isScreenSharing, audioE
 
       <div className={`flex gap-2 ${isHorizontalSide ? 'flex-row overflow-x-auto h-28' : 'lg:flex-col lg:w-44 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden lg:min-h-0 min-h-[120px]'} lg:pr-1 custom-scrollbar`}>
         {showLocalInSide && (
-          <div className="flex-shrink-0 w-40 lg:w-full aspect-video rounded-xl overflow-hidden bg-[#141420] border border-white/10 hover:border-white/20 transition-colors">
+          <div className="flex-shrink-0 w-40 lg:w-full aspect-video rounded-xl overflow-hidden bg-[#303134] border border-white/10 hover:border-white/20 transition-colors">
             <VideoTile stream={localStream} user={user} isLocal muted videoDisabled={!videoEnabled}
               isHandRaised={isHandRaised} audioEnabled={audioEnabled} videoEnabled={videoEnabled}
               isPinned={false} isHost={isHost} onPin={() => setPinnedUser('local')} />
@@ -580,7 +580,7 @@ function SpeakerView({ peers, localStream, screenStream, isScreenSharing, audioE
         {sidePeers.map(([sid]) => {
           const sharing = screenSharingPeers.has(sid);
           return (
-            <div key={sid} className="flex-shrink-0 w-40 lg:w-full aspect-video rounded-xl overflow-hidden bg-[#141420] border border-white/10 hover:border-white/20 transition-colors">
+            <div key={sid} className="flex-shrink-0 w-40 lg:w-full aspect-video rounded-xl overflow-hidden bg-[#303134] border border-white/10 hover:border-white/20 transition-colors">
               <VideoTile stream={peers[sid]?.stream} user={peers[sid]?.user} muted={false}
                 videoDisabled={sharing ? false : peerStates[sid]?.videoEnabled === false}
                 isHandRaised={raisedHands[sid] === true} isPinned={false} onPin={() => setPinnedUser(sid)}
@@ -849,7 +849,7 @@ export default function RoomPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0e0e16] flex items-center justify-center">
+    <div className="min-h-screen bg-[#202124] flex items-center justify-center">
       <div className="text-center">
         <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         <p className="text-gray-500 text-sm">Joining meeting…</p>
@@ -858,8 +858,8 @@ export default function RoomPage() {
   );
 
   if (error) return (
-    <div className="min-h-screen bg-[#0e0e16] flex items-center justify-center p-4">
-      <div className="bg-[#141420] border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center">
+    <div className="min-h-screen bg-[#202124] flex items-center justify-center p-4">
+      <div className="bg-[#303134] border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center">
         <p className="text-red-400 mb-4 text-sm">{error}</p>
         <button onClick={() => navigate('/dashboard')} className="btn-primary">Back to dashboard</button>
       </div>
@@ -867,10 +867,10 @@ export default function RoomPage() {
   );
 
   return (
-    <div className="h-screen bg-[#0e0e16] flex flex-col overflow-hidden select-none">
+    <div className="h-screen bg-[#202124] flex flex-col overflow-hidden select-none">
 
       {/* ══ TOP BAR ══════════════════════════════════════════════════════════ */}
-      <header className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 bg-[#0e0e16] border-b border-white/6">
+      <header className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 bg-[#202124] border-b border-white/6">
         {/* Left — room info */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
@@ -932,7 +932,7 @@ export default function RoomPage() {
 
         {/* Side panel */}
         {activePanel && (
-          <aside className="w-80 border-l border-white/8 flex flex-col flex-shrink-0 bg-[#12121c] animate-slide-right">
+          <aside className="w-80 border-l border-white/8 flex flex-col flex-shrink-0 bg-[#282a2d] animate-slide-right">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8 flex-shrink-0">
               <h2 className="text-sm font-bold text-white">{panelTitle[activePanel]}</h2>
               <button onClick={() => setActivePanel(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-400 hover:text-white transition-colors">
@@ -955,7 +955,7 @@ export default function RoomPage() {
       </div>
 
       {/* ══ BOTTOM BAR ════════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between py-3 px-4 flex-shrink-0 bg-[#0e0e16] border-t border-white/6">
+      <footer className="flex items-center justify-between py-3 px-4 flex-shrink-0 bg-[#202124] border-t border-white/6">
 
         {/* Left — clock */}
         <div className="hidden sm:flex flex-col w-32 justify-center">
