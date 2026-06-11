@@ -63,7 +63,7 @@ export default function LobbyPage() {
   const VIS_CY    = VIS_BUF / 2;                         // = 36
   // totalW = 3*8 + 2*6 = 36 → startX = (72-36)/2 = 18
   const VIS_BAR_CX = [22, 36, 50];                       // center X of each bar
-  const VIS_MAXH   = VIS_CY - 5;                         // = 31, max half-height
+  const VIS_MAXH   = Math.round(VIS_CY * 0.70);          // = 25, max half-height (70% of radius, stays inside circle)
   const VIS_MINH   = VIS_R + 1;                          // = 5,  min (tiny dot)
   const VIS_FIDX   = [1, 6, 14];                         // FFT bins: low/mid/high
 

@@ -26,7 +26,7 @@ export default function AudioVisCanvas({ bars = [0, 0, 0], size = 36 }) {
 
     // Center X of each bar
     const BAR_CX = [sx + BR, sx + BW + BG + BR, sx + 2 * (BW + BG) + BR];
-    const MAXH   = CY - Math.round(BUF * 0.07);  // max half-height
+    const MAXH   = Math.round(CY * 0.70);         // max half-height = 70% of radius (well inside circle)
     const MINH   = BR + 1;                        // min half-height (dot)
 
     const fillVPill = (ctx, cx, cy, half) => {
