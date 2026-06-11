@@ -163,7 +163,7 @@ function FullEmojiPicker({ onSelect, onClose, anchorRef }) {
   );
 }
 
-function ReactionPills({ reactions, userId, onToggle, messageId }) {
+function ReactionPills({ reactions, userId, onToggle, messageId, align = 'left' }) {
   if (!reactions?.length) return null;
   const grouped = reactions.reduce((acc, r) => {
     if (!acc[r.emoji]) acc[r.emoji] = { count: 0, users: [] };
@@ -172,17 +172,17 @@ function ReactionPills({ reactions, userId, onToggle, messageId }) {
     return acc;
   }, {});
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5 ml-12">
+    <div className={`flex flex-wrap gap-1 -mt-2 z-10 relative ${align === 'right' ? 'justify-end pr-1' : 'justify-start pl-1'}`}>
       {Object.entries(grouped).map(([emoji, { count, users }]) => {
         const reacted = reactions.some(r => r.emoji === emoji && (r.user?._id === userId || r.user === userId));
         return (
           <button key={emoji} type="button" onClick={() => onToggle(messageId, emoji)} title={users.join(', ')}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-all
+            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border shadow-md transition-all
               ${reacted
                 ? 'bg-[#8ab4f8]/20 border-[#8ab4f8]/50 text-[#8ab4f8]'
-                : 'bg-white/6 border-white/10 text-[#9aa0a6] hover:border-white/20'}`}>
+                : 'bg-[#282a2d] border-white/15 text-[#9aa0a6] hover:border-white/25'}`}>
             <span>{emoji}</span>
-            <span className="font-semibold">{count}</span>
+            {count > 1 && <span className="font-semibold">{count}</span>}
           </button>
         );
       })}
@@ -600,26 +600,31 @@ export default function ChatPanel({ roomId }) {
                 )}
 
                 {/* Bubble + ▼ arrow row */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-start gap-1.5 w-full min-w-0">
                   {/* ▼ arrow — appears on hover, opens emoji bar on click */}
                   {!isPending && (
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-6 h-6 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-[#9aa0a6] hover:text-white"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-6 h-6 mt-1 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-[#9aa0a6] hover:text-white flex-shrink-0"
                       title="React">
                       <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   )}
-                  <div className={`relative inline-block px-3 py-2 rounded-2xl rounded-tr-sm
-                    bg-[#1a73e8] text-white ${isPending ? 'opacity-60' : ''}`}>
-                    {msg.type === 'file' ? (
-                      <>
-                        {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
-                        <FileCard file={msg.file} baseUrl={baseUrl} />
-                      </>
-                    ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
-                    )}
+                  <div className="min-w-0 flex-1">
+                    <div className={`px-3 py-2 rounded-2xl rounded-tr-sm w-full
+                      bg-[#1a73e8] text-white ${isPending ? 'opacity-60' : ''}`}>
+                      {msg.type === 'file' ? (
+                        <>
+                          {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all mb-1">{msg.content}</p>}
+                          <FileCard file={msg.file} baseUrl={baseUrl} />
+                        </>
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all select-text">{msg.content}</p>
+                      )}
+                    </div>
+                    {/* Reaction pills — WhatsApp style, overlapping bubble bottom */}
+                    <ReactionPills reactions={msg.reactions} userId={user?._id}
+                      onToggle={handleToggleReaction} messageId={msg._id} align="right" />
                   </div>
                 </div>
 
@@ -636,10 +641,6 @@ export default function ChatPanel({ roomId }) {
                       : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 )}
-
-                {/* Reaction pills */}
-                <ReactionPills reactions={msg.reactions} userId={user?._id}
-                  onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
               {/* Emoji bar */}
@@ -695,23 +696,28 @@ export default function ChatPanel({ roomId }) {
                 )}
 
                 {/* Bubble + ▼ arrow row */}
-                <div className="flex items-center gap-1.5">
-                  <div className={`relative inline-block px-3 py-2 rounded-2xl rounded-tl-sm
-                    bg-[#3a3d42] text-[#e8eaed] ${isPending ? 'opacity-60' : ''}`}>
-                    {msg.type === 'file' ? (
-                      <>
-                        {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mb-1">{msg.content}</p>}
-                        <FileCard file={msg.file} baseUrl={baseUrl} />
-                      </>
-                    ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words select-text">{msg.content}</p>
-                    )}
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <div className={`px-3 py-2 rounded-2xl rounded-tl-sm w-full
+                      bg-[#3a3d42] text-[#e8eaed] ${isPending ? 'opacity-60' : ''}`}>
+                      {msg.type === 'file' ? (
+                        <>
+                          {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all mb-1">{msg.content}</p>}
+                          <FileCard file={msg.file} baseUrl={baseUrl} />
+                        </>
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all select-text">{msg.content}</p>
+                      )}
+                    </div>
+                    {/* Reaction pills — WhatsApp style, overlapping bubble bottom */}
+                    <ReactionPills reactions={msg.reactions} userId={user?._id}
+                      onToggle={handleToggleReaction} messageId={msg._id} align="left" />
                   </div>
                   {/* ▼ arrow — appears on hover, opens emoji bar on click */}
                   {!isPending && (
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); setHoveredMsgId(h => h === msg._id ? null : msg._id); }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-6 h-6 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-[#9aa0a6] hover:text-white flex-shrink-0"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-6 h-6 mt-1 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-[#9aa0a6] hover:text-white flex-shrink-0"
                       title="React">
                       <ChevronDown className="w-3.5 h-3.5" />
                     </button>
@@ -731,10 +737,6 @@ export default function ChatPanel({ roomId }) {
                       : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 )}
-
-                {/* Reaction pills */}
-                <ReactionPills reactions={msg.reactions} userId={user?._id}
-                  onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
               {/* Emoji bar */}

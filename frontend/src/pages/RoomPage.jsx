@@ -219,42 +219,21 @@ function LeaveModal({ isHost, onEnd, onLeave, onCancel }) {
 // ─── Layout Picker Modal ──────────────────────────────────────────────────────
 function LayoutPicker({ current, onChange, onClose }) {
   return (
-    <div className="fixed inset-0 z-[300] flex items-end justify-center pb-24" onClick={onClose}>
-      <div className="bg-[#202124] border border-white/12 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-slide-up mx-4"
-        onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white">Change layout</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/8 text-gray-500 hover:text-white transition-colors">
-            <X className="w-4 h-4" />
+    <>
+      <div className="fixed inset-0 z-[390]" onClick={onClose} />
+      <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 w-56 bg-[#282a2d] rounded-2xl shadow-2xl overflow-hidden z-[400] animate-slide-up">
+        {LAYOUT_DEFS.map((l) => (
+          <button key={l.id}
+            onClick={() => { onChange(l.id); onClose(); }}
+            className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm transition-colors text-left
+              ${current === l.id ? 'text-[#8ab4f8] bg-[#8ab4f8]/10' : 'text-[#e8eaed] hover:bg-white/8'}`}>
+            <span className={`flex-shrink-0 ${current === l.id ? 'text-[#8ab4f8]' : 'text-[#e8eaed]'}`}>{l.icon}</span>
+            <span className="font-medium flex-1">{l.label}</span>
+            {current === l.id && <Check className="w-4 h-4 flex-shrink-0" />}
           </button>
-        </div>
-        <div className="space-y-1.5">
-          {LAYOUT_DEFS.map((l) => (
-            <button key={l.id}
-              onClick={() => { onChange(l.id); onClose(); }}
-              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all text-left
-                ${current === l.id
-                  ? 'bg-indigo-600/20 border border-indigo-500/40 text-white'
-                  : 'hover:bg-white/6 border border-transparent text-gray-300'}`}>
-              <div className={`flex-shrink-0 ${current === l.id ? 'text-indigo-400' : 'text-gray-500'}`}>
-                {l.icon}
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-semibold leading-tight">{l.label}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{l.sublabel}</div>
-              </div>
-              {current === l.id && (
-                <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
-    </div>
+    </>
   );
 }
 
