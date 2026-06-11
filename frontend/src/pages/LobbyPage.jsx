@@ -254,12 +254,68 @@ export default function LobbyPage() {
             </div>
           )}
 
-          {/* Name badge on video */}
-          {camOn && (
-            <div className="absolute top-3 left-3">
-              <span className="text-sm font-semibold text-white drop-shadow-lg">{user?.name}</span>
+          {/* Name badge — top left inside video */}
+          <div className="absolute top-3 left-3">
+            <span className="text-sm font-semibold text-white drop-shadow-lg">{user?.name}</span>
+          </div>
+
+          {/* ── BOTTOM OVERLAY: visualizer (left) + controls (center) ── */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-10
+            bg-gradient-to-t from-black/70 via-black/20 to-transparent
+            flex items-end justify-between">
+
+            {/* Audio frequency visualizer — bottom left */}
+            <div className="flex items-end gap-[3px] h-6">
+              {barHeights.map((maxH, i) => {
+                const active = micOn && i < volBars;
+                return (
+                  <div
+                    key={i}
+                    className="w-[5px] rounded-full transition-all duration-75"
+                    style={{
+                      height: active ? `${maxH}px` : '4px',
+                      background: active ? '#ffffff' : 'rgba(255,255,255,0.25)',
+                    }}
+                  />
+                );
+              })}
             </div>
-          )}
+
+            {/* Mic + Camera buttons — bottom center */}
+            <div className="flex items-center gap-3 absolute left-1/2 -translate-x-1/2 bottom-4">
+              <button
+                onClick={handleToggleMic}
+                title={micOn ? 'Mute microphone' : 'Unmute microphone'}
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-200
+                  ${micOn
+                    ? 'bg-white/90 text-[#202124] hover:bg-white'
+                    : 'bg-[#ea4335] text-white hover:bg-[#d33828]'
+                  }`}
+              >
+                {micOn ? <Mic className="w-4.5 h-4.5" /> : <MicOff className="w-4.5 h-4.5" />}
+              </button>
+
+              <button
+                onClick={handleToggleCam}
+                title={camOn ? 'Turn off camera' : 'Turn on camera'}
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 relative
+                  ${camOn
+                    ? 'bg-white/90 text-[#202124] hover:bg-white'
+                    : camPerm === 'denied'
+                      ? 'bg-[#5f6368] text-white/60 cursor-not-allowed'
+                      : 'bg-[#ea4335] text-white hover:bg-[#d33828]'
+                  }`}
+              >
+                {camOn ? <Video className="w-4.5 h-4.5" /> : <VideoOff className="w-4.5 h-4.5" />}
+                {!camOn && camPerm !== 'denied' && camPerm !== 'granted' && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 flex items-center justify-center text-[9px] font-bold text-black">!</span>
+                )}
+              </button>
+            </div>
+
+            {/* Spacer right */}
+            <div className="w-16" />
+          </div>
         </div>
 
         {/* Join button */}
@@ -280,77 +336,24 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      {/* Bottom controls */}
-      <div className="flex items-center justify-between px-6 pb-8 pt-2 flex-shrink-0">
-
-        {/* Left — audio level meter (visualizer) */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-end gap-[3px] h-5">
-            {barHeights.map((maxH, i) => {
-              const active = micOn && i < volBars;
-              return (
-                <div
-                  key={i}
-                  className="w-1.5 rounded-full transition-all duration-75"
-                  style={{
-                    height: active ? `${maxH}px` : '4px',
-                    background: active ? '#4f46e5' : '#3a3a3a',
-                  }}
-                />
-              );
-            })}
-          </div>
-          <span className="text-[10px] text-white/30 uppercase tracking-wide">
-            {micOn ? 'mic level' : 'muted'}
-          </span>
-        </div>
-
-        {/* Center — mic + cam + leave */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleToggleMic}
-            title={micOn ? 'Mute microphone' : 'Unmute microphone'}
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200
-              ${micOn
-                ? 'bg-[#e8eaed] text-[#202124] hover:bg-white'
-                : 'bg-[#ea4335] text-white hover:bg-[#d33828]'
-              }`}
-          >
-            {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          </button>
-
-          <button
-            onClick={handleToggleCam}
-            title={camOn ? 'Turn off camera' : 'Turn on camera'}
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 relative
-              ${camOn
-                ? 'bg-[#e8eaed] text-[#202124] hover:bg-white'
-                : camPerm === 'denied'
-                  ? 'bg-[#5f6368] text-white cursor-not-allowed'
-                  : 'bg-[#ea4335] text-white hover:bg-[#d33828]'
-              }`}
-          >
-            {camOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-            {!camOn && camPerm !== 'denied' && camPerm !== 'granted' && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 flex items-center justify-center text-[9px] font-bold text-black">!</span>
-            )}
-          </button>
-
-          <button
-            onClick={() => navigate('/dashboard')}
-            title="Leave"
-            className="w-14 h-14 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] flex items-center justify-center transition-colors"
-          >
-            <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Right — more options */}
+      {/* Bottom bar — leave + more options only */}
+      <div className="flex items-center justify-between px-6 pb-6 pt-2 flex-shrink-0">
         <button className="w-10 h-10 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] flex items-center justify-center transition-colors">
           <MoreHorizontal className="w-4 h-4 text-white/70" />
         </button>
+
+        <button
+          onClick={() => navigate('/dashboard')}
+          title="Leave"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] text-white/70 hover:text-white text-sm transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+          </svg>
+          Back
+        </button>
+
+        <div className="w-10" />
       </div>
     </div>
   );
