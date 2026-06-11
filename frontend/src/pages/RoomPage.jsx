@@ -607,30 +607,25 @@ function MicGroup({ audioEnabled, onToggle, isSpeaking, devices, currentId, onSe
   }, [open]);
   return (
     <div ref={ref} className="relative">
-      {/* Split pill container */}
       <div className={`flex items-center h-14 rounded-full overflow-hidden transition-colors ${!audioEnabled ? 'bg-[#ea4335]' : 'bg-[#3c4043]'}`}>
-        {/* Left half: ChevronUp + indicator (dots/bars) */}
+        {/* Left half: three dots / speaking bars */}
         <button onClick={() => setOpen(v => !v)} title="Audio devices"
-          className={`flex flex-col items-center justify-center w-10 h-full transition-colors
+          className={`flex items-center justify-center w-10 h-full transition-colors
             border-r ${!audioEnabled ? 'border-white/20' : 'border-white/10'}
             ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
-          <ChevronUp className={`w-3 h-3 mb-0.5 ${open ? 'text-white' : 'text-white/50'}`} />
-          {/* Bars/dots indicator — centered */}
-          <div className="flex items-end justify-center gap-[2.5px] h-3.5">
-            {isSpeaking && audioEnabled ? (
-              <>
-                <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-1" style={{ minHeight: '2px' }} />
-                <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-2" style={{ minHeight: '2px' }} />
-                <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-3" style={{ minHeight: '2px' }} />
-              </>
-            ) : (
-              <>
-                <span className="w-[4px] h-[4px] rounded-full bg-white/50" />
-                <span className="w-[4px] h-[4px] rounded-full bg-white/50" />
-                <span className="w-[4px] h-[4px] rounded-full bg-white/50" />
-              </>
-            )}
-          </div>
+          {isSpeaking && audioEnabled ? (
+            <div className="flex items-end justify-center gap-[2.5px] h-4">
+              <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-1" style={{ minHeight: '2px' }} />
+              <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-2" style={{ minHeight: '2px' }} />
+              <span className="w-[2.5px] rounded-full bg-[#8ab4f8] speak-bar-3" style={{ minHeight: '2px' }} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-[3.5px]">
+              <span className="w-[4px] h-[4px] rounded-full bg-white/60" />
+              <span className="w-[4px] h-[4px] rounded-full bg-white/60" />
+              <span className="w-[4px] h-[4px] rounded-full bg-white/60" />
+            </div>
+          )}
         </button>
         {/* Right half: mic icon */}
         <button onClick={onToggle} title={audioEnabled ? 'Turn off microphone (M)' : 'Turn on microphone (M)'}
@@ -655,7 +650,6 @@ function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }
   }, [open]);
   return (
     <div ref={ref} className="relative">
-      {/* Split pill container */}
       <div className={`flex items-center h-14 rounded-full overflow-hidden transition-colors ${!videoEnabled ? 'bg-[#ea4335]' : 'bg-[#3c4043]'}`}>
         {/* Left half: ChevronUp */}
         <button onClick={() => setOpen(v => !v)} title="Camera devices"
@@ -664,10 +658,15 @@ function CamGroup({ videoEnabled, onToggle, devices, currentId, onSelectDevice }
             ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}>
           <ChevronUp className={`w-4 h-4 ${open ? 'text-white' : 'text-white/60'}`} />
         </button>
-        {/* Right half: camera icon */}
+        {/* Right half: camera icon with warning badge when off */}
         <button onClick={onToggle} title={videoEnabled ? 'Turn off camera (V)' : 'Turn on camera (V)'}
-          className="flex items-center justify-center w-14 h-full hover:bg-white/10 transition-colors text-white">
+          className="relative flex items-center justify-center w-14 h-full hover:bg-white/10 transition-colors text-white">
           {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+          {!videoEnabled && (
+            <span className="absolute top-2.5 right-2 w-4 h-4 rounded-full bg-[#fbbc04] flex items-center justify-center shadow-md">
+              <span className="text-[#202124] text-[9px] font-black leading-none select-none">!</span>
+            </span>
+          )}
         </button>
       </div>
       {open && <DevicePicker label="Camera" devices={devices} currentId={currentId} onSelect={onSelectDevice} onClose={() => setOpen(false)} />}

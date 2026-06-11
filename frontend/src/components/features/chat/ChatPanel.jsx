@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Send, Paperclip, Loader2, Download,
   FileText, FileSpreadsheet, FileArchive, Film, Image as ImageIcon, X as XIcon,
-  MoreHorizontal, Copy, CornerUpLeft, Check,
+  MoreHorizontal, Copy, CornerUpLeft, Check, ChevronDown,
 } from 'lucide-react';
 import { getSocket } from '@/services/socket';
 import api from '@/services/api';
@@ -114,9 +114,54 @@ function FileCard({ file, baseUrl }) {
   );
 }
 
-// ─── Emoji reactions ──────────────────────────────────────────────────────────
+// ─── Full emoji picker ────────────────────────────────────────────────────────
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+const ALL_EMOJIS = [
+  '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😉','😊','😇','🥰','😍','🤩','😘','😋','😜','🤪','😝',
+  '🤑','🤗','🤔','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','😴','😷','🤒','🤕','🤢','🤧',
+  '🥵','🥶','😵','🤯','🤠','🥳','😎','🤓','😕','😟','😮‍💨','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭',
+  '😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','💩','🤡','👻','🤖','👽',
+  '👋','🤚','✋','🖖','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','👍','👎','✊','👊','👏',
+  '🙌','👐','🤲','🤝','🙏','💪','🦾','🦵','🦶','👂','🦻','👃','🫀','🫁','🧠','🦷','🦴','👀','👁️','👅',
+  '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️',
+  '🔥','✨','🌟','⭐','💫','🎉','🎊','🎈','🎁','🎀','🏆','🥇','🎮','🎲','🎯','🎵','🎶','🎤','🎧','🎸',
+  '🌈','☀️','🌙','🌤️','⛅','🌊','🌺','🌸','🍀','🌴','🐶','🐱','🐭','🐰','🦊','🐻','🐼','🐨','🐯','🦁',
+  '🍕','🍔','🍟','🌮','🍜','🍣','🍦','🍰','🎂','🍫','🍬','🍭','🥤','☕','🍵','🍺','🥂','🍾','🎃','🎄',
+];
+
+function FullEmojiPicker({ onSelect, onClose, anchorRef }) {
+  const pickerRef = useRef(null);
+  useEffect(() => {
+    const h = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target) &&
+          anchorRef?.current && !anchorRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [onClose, anchorRef]);
+
+  return (
+    <div ref={pickerRef}
+      className="absolute bottom-full right-0 mb-2 w-72 bg-[#303134] rounded-2xl shadow-2xl border border-white/10 z-50 overflow-hidden"
+      onClick={(e) => e.stopPropagation()}>
+      <div className="px-3 py-2 border-b border-white/8">
+        <p className="text-[11px] text-[#9aa0a6] font-medium">Reactions</p>
+      </div>
+      <div className="grid grid-cols-10 gap-0.5 p-2 max-h-52 overflow-y-auto custom-scrollbar">
+        {ALL_EMOJIS.map((emoji, i) => (
+          <button key={i} type="button" onClick={() => { onSelect(emoji); onClose(); }}
+            className="w-7 h-7 flex items-center justify-center text-lg hover:bg-white/10 rounded-lg transition-all hover:scale-125">
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ReactionPills({ reactions, userId, onToggle, messageId }) {
   if (!reactions?.length) return null;
@@ -145,57 +190,41 @@ function ReactionPills({ reactions, userId, onToggle, messageId }) {
   );
 }
 
-// ─── Message hover actions bar ────────────────────────────────────────────────
+// ─── Message hover actions bar (WhatsApp style) ───────────────────────────────
 
-function MessageActions({ msg, userId, onReact, onReply, onCopy, visible, onMore, showMore, onCloseMore }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    const text = msg.type === 'file' ? (msg.content || msg.file?.originalName || '') : (msg.content || '');
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    onCopy?.();
-  };
-
+function MessageActions({ msg, userId, onReact, onReply, visible, onMore, showMore, onCloseMore }) {
+  const plusRef = useRef(null);
   if (!visible) return null;
 
   return (
-    <div className="absolute right-0 top-0 z-20 flex items-center gap-0.5 bg-[#303134] rounded-xl px-1 py-1 shadow-xl border border-white/8 animate-fade-in">
-      {/* Quick emoji reactions */}
-      {EMOJI_LIST.slice(0, 4).map(emoji => (
-        <button key={emoji} type="button" onClick={() => onReact(msg._id, emoji)}
-          className="w-7 h-7 flex items-center justify-center text-base hover:scale-125 transition-transform rounded-lg hover:bg-white/10">
-          {emoji}
+    <div className="absolute right-0 -top-5 z-20 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-0.5 bg-[#1f2023] rounded-full px-2 py-1.5 shadow-2xl border border-white/10">
+        {EMOJI_LIST.map(emoji => (
+          <button key={emoji} type="button" onClick={() => onReact(msg._id, emoji)}
+            className="w-8 h-8 flex items-center justify-center text-xl hover:scale-125 transition-all rounded-full hover:bg-white/10">
+            {emoji}
+          </button>
+        ))}
+        {/* Reply button */}
+        <div className="w-px h-5 bg-white/15 mx-0.5" />
+        <button type="button" onClick={() => onReply(msg)}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Reply">
+          <CornerUpLeft className="w-4 h-4" />
         </button>
-      ))}
-      <div className="w-px h-4 bg-white/15 mx-0.5" />
-      {/* Reply */}
-      <button type="button" onClick={() => onReply(msg)}
-        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Reply">
-        <CornerUpLeft className="w-3.5 h-3.5" />
-      </button>
-      {/* Copy */}
-      <button type="button" onClick={handleCopy}
-        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="Copy">
-        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-      </button>
-      {/* More (all emojis) */}
-      <div className="relative">
-        <button type="button" onClick={onMore}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors" title="More reactions">
-          <MoreHorizontal className="w-3.5 h-3.5" />
-        </button>
-        {showMore && (
-          <div className="absolute bottom-full right-0 mb-1 bg-[#303134] rounded-xl px-2 py-1.5 shadow-2xl border border-white/8 flex gap-1 z-30">
-            {EMOJI_LIST.map(emoji => (
-              <button key={emoji} type="button" onClick={() => { onReact(msg._id, emoji); onCloseMore(); }}
-                className="text-lg hover:scale-125 transition-transform px-1">
-                {emoji}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* + full emoji picker */}
+        <div className="relative" ref={plusRef}>
+          <button type="button" onClick={onMore}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-[#9aa0a6] hover:text-white transition-colors font-bold text-base" title="More reactions">
+            +
+          </button>
+          {showMore && (
+            <FullEmojiPicker
+              onSelect={(emoji) => onReact(msg._id, emoji)}
+              onClose={onCloseMore}
+              anchorRef={plusRef}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -285,7 +314,13 @@ export default function ChatPanel({ roomId }) {
   const longPressRef = useRef(null);
   const [mobileMsgMenu, setMobileMsgMenu] = useState(null);
 
+  const [copiedMsgId, setCopiedMsgId] = useState(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [newMsgBanner, setNewMsgBanner] = useState(null);
+  const [newMsgCount, setNewMsgCount] = useState(0);
+
   const bottomRef = useRef(null);
+  const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const inputRef = useRef(null);
@@ -357,9 +392,36 @@ export default function ChatPanel({ roomId }) {
     return () => socket.off('chat:typing', onTyping);
   }, []);
 
-  useEffect(() => {
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setIsAtBottom(atBottom);
+    if (atBottom) { setNewMsgCount(0); setNewMsgBanner(null); }
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingUsers]);
+    setIsAtBottom(true);
+    setNewMsgCount(0);
+    setNewMsgBanner(null);
+  }, []);
+
+  useEffect(() => {
+    if (isAtBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      const last = messages[messages.length - 1];
+      if (last && !last._pending) {
+        setNewMsgCount(c => c + 1);
+        setNewMsgBanner(last);
+      }
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (isAtBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [typingUsers, isAtBottom]);
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -438,6 +500,13 @@ export default function ChatPanel({ roomId }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleInlineCopy = useCallback((msg) => {
+    const text = msg.type === 'file' ? (msg.content || msg.file?.originalName || '') : (msg.content || '');
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopiedMsgId(msg._id);
+    setTimeout(() => setCopiedMsgId(id => id === msg._id ? null : id), 2000);
+  }, []);
+
   // Mobile long press
   const handleTouchStart = (msgId) => {
     longPressRef.current = setTimeout(() => { setMobileMsgMenu(msgId); }, 500);
@@ -465,9 +534,25 @@ export default function ChatPanel({ roomId }) {
       onClick={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); setMobileMsgMenu(null); }}>
 
       {/* Messages list */}
-      <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+      <div className="relative flex-1 overflow-hidden flex flex-col">
+
+        {/* New message banner — shows when scrolled away and new message arrives */}
+        {newMsgBanner && !isAtBottom && (
+          <button type="button" onClick={scrollToBottom}
+            className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#1f2023] border border-white/15 shadow-xl max-w-[90%] hover:bg-[#2a2c2f] transition-colors animate-fade-in">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#8ab4f8] flex items-center justify-center text-[10px] font-bold text-[#202124]">
+              {newMsgCount > 9 ? '9+' : newMsgCount}
+            </span>
+            <span className="text-xs text-[#e8eaed] truncate max-w-[160px]">
+              {newMsgBanner.sender?.name || 'Someone'}: {newMsgBanner.content?.slice(0, 40) || 'sent a file'}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#9aa0a6] flex-shrink-0" />
+          </button>
+        )}
+
+        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-2 custom-scrollbar">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6" style={{ minHeight: '200px' }}>
             <div className="w-12 h-12 rounded-full bg-[#3c4043] flex items-center justify-center">
               <span className="text-xl">💬</span>
             </div>
@@ -493,7 +578,7 @@ export default function ChatPanel({ roomId }) {
 
           return (
             <div key={key}
-              className="group relative flex items-start gap-3 px-4 py-2 hover:bg-white/4 transition-colors"
+              className="group relative flex items-start gap-3 px-3 py-2.5 mx-2 mb-0.5 rounded-2xl bg-[#2d2f32] hover:bg-[#313437] transition-colors"
               onMouseEnter={() => !isPending && setHoveredMsgId(msg._id)}
               onMouseLeave={() => { setHoveredMsgId(null); setMoreEmojiMsgId(null); }}
               onTouchStart={() => handleTouchStart(msg._id)}
@@ -547,19 +632,32 @@ export default function ChatPanel({ roomId }) {
                   </p>
                 )}
 
+                {/* Inline copy button — below message text */}
+                {!isPending && msg.type !== 'system' && (
+                  <div className="flex items-center justify-end mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="button"
+                      onClick={(e) => { e.stopPropagation(); handleInlineCopy(msg); }}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-[#9aa0a6] hover:text-white hover:bg-white/10 transition-all"
+                      title="Copy message">
+                      {copiedMsgId === msg._id
+                        ? <><Check className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+                        : <><Copy className="w-3 h-3" /><span>Copy</span></>}
+                    </button>
+                  </div>
+                )}
+
                 {/* Reaction pills */}
                 <ReactionPills reactions={msg.reactions} userId={user?._id}
                   onToggle={handleToggleReaction} messageId={msg._id} />
               </div>
 
-              {/* Hover actions (desktop) */}
+              {/* Hover emoji bar (desktop) */}
               {!isPending && (
                 <MessageActions
                   msg={msg}
                   userId={user?._id}
                   onReact={handleToggleReaction}
                   onReply={(m) => { setReplyTo(m); inputRef.current?.focus(); }}
-                  onCopy={() => {}}
                   visible={isHovered}
                   onMore={() => setMoreEmojiMsgId(moreEmojiMsgId === msg._id ? null : msg._id)}
                   showMore={moreEmojiMsgId === msg._id}
@@ -569,13 +667,13 @@ export default function ChatPanel({ roomId }) {
 
               {/* Mobile long-press menu */}
               {isMobileMenuOpen && (
-                <div className="absolute right-2 top-0 z-30 bg-[#303134] rounded-2xl shadow-2xl py-2 min-w-[180px] border border-white/8">
+                <div className="absolute right-2 top-0 z-30 bg-[#303134] rounded-2xl shadow-2xl py-2 min-w-[200px] border border-white/8">
                   <p className="px-4 py-1 text-[10px] text-[#9aa0a6] uppercase tracking-widest">React</p>
-                  <div className="flex gap-2 px-4 py-2">
+                  <div className="flex gap-1.5 px-4 py-2">
                     {EMOJI_LIST.map(emoji => (
                       <button key={emoji} type="button"
                         onClick={() => { handleToggleReaction(msg._id, emoji); setMobileMsgMenu(null); }}
-                        className="text-xl hover:scale-125 transition-transform">
+                        className="text-2xl hover:scale-125 transition-transform">
                         {emoji}
                       </button>
                     ))}
@@ -585,11 +683,7 @@ export default function ChatPanel({ roomId }) {
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#e8eaed] hover:bg-white/8">
                     <CornerUpLeft className="w-4 h-4 text-[#9aa0a6]" /> Reply
                   </button>
-                  <button onClick={() => {
-                    const text = msg.type === 'file' ? (msg.file?.originalName || '') : (msg.content || '');
-                    navigator.clipboard.writeText(text).catch(() => {});
-                    setMobileMsgMenu(null);
-                  }}
+                  <button onClick={() => { handleInlineCopy(msg); setMobileMsgMenu(null); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#e8eaed] hover:bg-white/8">
                     <Copy className="w-4 h-4 text-[#9aa0a6]" /> Copy text
                   </button>
@@ -601,6 +695,20 @@ export default function ChatPanel({ roomId }) {
 
         <TypingIndicator typingUsers={typingUsers} />
         <div ref={bottomRef} className="h-2" />
+        </div>
+
+        {/* Scroll-to-bottom floating button */}
+        {!isAtBottom && (
+          <button type="button" onClick={scrollToBottom}
+            className="absolute bottom-3 right-3 z-20 w-9 h-9 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] border border-white/15 shadow-xl flex items-center justify-center text-white transition-all animate-fade-in">
+            {newMsgCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#8ab4f8] flex items-center justify-center text-[9px] font-bold text-[#202124]">
+                {newMsgCount > 9 ? '9+' : newMsgCount}
+              </span>
+            )}
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Reply quote preview */}
